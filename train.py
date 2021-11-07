@@ -157,7 +157,7 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs, config):
     model = gnn_model(MODEL_NAME, net_params)
     # model = load_model(DATASET_NAME, MODEL_NAME, net_params, config, config['best_epoch'])
     model = model.to(device)
-
+    print(sum(p.numel() for p in model.parameters()))
     optimizer = optim.Adam(model.parameters(), lr=params['init_lr'], weight_decay=params['weight_decay'])
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                      factor=params['lr_reduce_factor'],
@@ -341,6 +341,9 @@ def main():
     parser.add_argument('--debias', default='False', help="Debias the data or not")
     parser.add_argument('--motif', help="get motifs or not")
     parser.add_argument('--best_epoch', help="best epoch for the result")
+
+    parser.add_argument('--nfeat', help="Please give a value for nfeat")
+
     args = parser.parse_args()
     with open(args.config) as f:
         config = json.load(f)
@@ -392,6 +395,10 @@ def main():
         params['print_epoch_interval'] = int(args.print_epoch_interval)
     if args.max_time is not None:
         params['max_time'] = float(args.max_time)
+
+    if args.nfeat is not None:
+        params['nfeat'] = int(args.nfeat)
+
     # network parameters
     net_params = config['net_params']
     net_params['device'] = device

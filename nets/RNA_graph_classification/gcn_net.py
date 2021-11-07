@@ -13,7 +13,7 @@ import dgl
 from layers.gcn_layer import GCNLayer, ConvReadoutLayer, GNNPoolLayer, WeightCrossLayer
 from layers.mlp_readout_layer import MLPReadout
 from layers.conv_layer import ConvLayer, MAXPoolLayer
-
+from layers.gat_layer import GraphAttentionLayer
 
 class GCNNet(nn.Module):
     def __init__(self, net_params):
@@ -48,12 +48,18 @@ class GCNNet(nn.Module):
         # GNN start
         self.embedding_h = nn.Linear(in_dim, hidden_dim)
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
+        #print("n_layers is ", self.n_layers) n_layers = 2
 
         self.layers_gnn = nn.ModuleList()
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         for _ in range(self.n_layers * 2 - 2):
-            self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+            # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+            self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))
         self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+
+        # self.layers_gnn.append(GNNPoolLayer())
+        # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+        # self.layers_gnn.append(GNNPoolLayer())
         # GNN end
 
         # CNN start
@@ -77,7 +83,8 @@ class GCNNet(nn.Module):
         input_dim = width_o2*32
         self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
 
-    def forward(self, g, h, e):
+    def forward(self, g, h, e):     #g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
+        #详见train_RNAGraph_graph_classification.py
         batch_size = len(g.batch_num_nodes())
         window_size = g.batch_num_nodes()[0]
         similar_loss = 0
@@ -96,7 +103,7 @@ class GCNNet(nn.Module):
             # GNN
             h1 = self.layers_gnn[2*i](g, h1)
             h1 = self.layers_gnn[2*i + 1](g, h1)
-            # g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
+            #g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
 
             # CNN
             h2 = self.layers_cnn[i](h2)

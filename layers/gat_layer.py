@@ -25,7 +25,8 @@ class GraphAttentionLayer(nn.Module):
 
         self.leakyrelu = nn.LeakyReLU(self.alpha)
 
-    def forward(self, h, adj):
+    def forward(self, g, h):
+        adj = g.adj
         Wh = torch.mm(h, self.W)  # h.shape: (N, in_features), Wh.shape: (N, out_features)
         e = self._prepare_attentional_mechanism_input(Wh)
 
