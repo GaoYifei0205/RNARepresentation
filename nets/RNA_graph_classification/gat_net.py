@@ -4,11 +4,11 @@ import torch.nn.functional as F
 from layers.gat_layer import GraphAttentionLayer, SpGraphAttentionLayer
 
 
-class GAT(nn.Module):
+class GATNet(nn.Module):
     #def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads):
     def __init__(self, net_params):
         """Dense version of GAT."""
-        super(GAT, self).__init__()
+        super(GATNet, self).__init__()
         nfeat = net_params['nfeat']
         nhid = net_params['nhid']
         nclass = net_params['nclass']

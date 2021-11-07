@@ -4,7 +4,7 @@
 """
 from nets.RNA_graph_classification.gcn_net import GCNNet
 from nets.RNA_graph_classification.graphsage_net import GraphSageNet
-from nets.RNA_graph_classification.gat_net import GAT
+from nets.RNA_graph_classification.gat_net import GATNet
 
 def GCN(net_params):
     return GCNNet(net_params)
@@ -13,7 +13,7 @@ def GraphSage(net_params):
     return GraphSageNet(net_params)
 
 def GAT(net_params):
-    return GAT(net_params)
+    return GATNet(net_params)
 
 def gnn_model(MODEL_NAME, net_params):
     models = {
