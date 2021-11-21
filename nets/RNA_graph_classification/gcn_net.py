@@ -53,8 +53,9 @@ class GCNNet(nn.Module):
         self.layers_gnn = nn.ModuleList()
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         for _ in range(self.n_layers * 2 - 2):
-            # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
-            self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))
+            self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+        # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+        # self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))
         self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
 
         # self.layers_gnn.append(GNNPoolLayer())
@@ -80,7 +81,8 @@ class GCNNet(nn.Module):
         # self.cross_weight_layer.append(WeightCrossLayer(in_dim=501, out_dim=501//4+1))
         self.batchnorm_weight = nn.BatchNorm1d(501)
 
-        input_dim = width_o2*32
+        # input_dim = width_o2*32
+        input_dim = 2016
         self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
 
     def forward(self, g, h, e):     #g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
