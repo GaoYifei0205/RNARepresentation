@@ -60,9 +60,9 @@ def loss_record(DATASET_NAME, print_str, epoch, config):
 def save_model(DATASET_NAME, model, epoch, config):
     # save
     if config['debias'] == "True":
-        save_dir = './model_save/debias/'
+        save_dir = '/data/gaoyifei/model_save/debias/'
     else:
-        save_dir = './model_save/bias/'
+        save_dir = '/data/gaoyifei/model_save/bias/'
     if os.path.exists(save_dir) is False:
         os.makedirs(save_dir)
     if os.path.exists(save_dir + DATASET_NAME) is False:
