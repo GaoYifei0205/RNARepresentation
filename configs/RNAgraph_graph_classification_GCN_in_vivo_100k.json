@@ -33,7 +33,7 @@
         "dropout": 0.25,
         "batch_norm": true,
         "self_loop": true,
-        "n_heads": 4,
+        "n_heads": 1,
         "layer_type": "dgl"
     }
 }

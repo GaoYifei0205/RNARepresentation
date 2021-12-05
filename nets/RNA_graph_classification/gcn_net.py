@@ -2,7 +2,7 @@ import torch
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-
+from layers.gat_layer import GraphAttentionLayer
 import dgl
 
 """
@@ -21,6 +21,7 @@ class GCNNet(nn.Module):
         in_dim = net_params['in_dim']
         hidden_dim = net_params['hidden_dim']
         out_dim = net_params['out_dim']
+        num_heads = net_params['n_heads']
         in_feat_dropout = net_params['in_feat_dropout']
         dropout = net_params['dropout']
         self.device = net_params['device']
@@ -53,7 +54,7 @@ class GCNNet(nn.Module):
         self.layers_gnn = nn.ModuleList()
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         for _ in range(self.n_layers * 2 - 2):
-            self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))
+            self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, num_heads, dropout, self.batch_norm))
             # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))

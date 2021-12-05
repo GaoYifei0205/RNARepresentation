@@ -10,7 +10,7 @@ import dgl
     https://arxiv.org/abs/1710.10903
 """
 
-from layers.gat_layer import GATLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
+from layers.gat_layer import GraphAttentionLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
 from layers.mlp_readout_layer import MLPReadout
 
 
@@ -32,15 +32,15 @@ class GATNet(nn.Module):
         self.device = net_params['device']
 
         self.layer_type = {
-            "dgl": GATLayer,
+            "dgl": GraphAttentionLayer,
             "edgereprfeat": CustomGATLayerEdgeReprFeat,
             "edgefeat": CustomGATLayer,
             "isotropic": CustomGATLayerIsotropic,
-        }.get(net_params['layer_type'], GATLayer)
+        }.get(net_params['layer_type'], GraphAttentionLayer)
 
         self.embedding_h = nn.Linear(in_dim, hidden_dim * num_heads)
 
-        if self.layer_type != GATLayer:
+        if self.layer_type != GraphAttentionLayer:
             self.edge_feat = net_params['edge_feat']
             self.embedding_e = nn.Linear(in_dim_edge, hidden_dim * num_heads)
 
@@ -56,7 +56,7 @@ class GATNet(nn.Module):
         h = self.embedding_h(h.float())
         h = self.in_feat_dropout(h)
 
-        if self.layer_type == GATLayer:
+        if self.layer_type == GraphAttentionLayer:
             for conv in self.layers:
                 h = conv(g, h)
         else:

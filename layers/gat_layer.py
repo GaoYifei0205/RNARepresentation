@@ -11,7 +11,7 @@ from dgl.nn.pytorch import GATConv
 """
 
 
-class GATLayer(nn.Module):
+class GraphAttentionLayer(nn.Module):
     """
     Parameters
     ----------

@@ -396,8 +396,7 @@ def main():
     if args.max_time is not None:
         params['max_time'] = float(args.max_time)
 
-    if args.n_heads is not None:
-        params['n_heads'] = int(args.n_heads)
+
 
     # network parameters
     net_params = config['net_params']
@@ -448,7 +447,8 @@ def main():
         net_params['cat'] = True if args.cat == 'True' else False
     if args.self_loop is not None:
         net_params['self_loop'] = True if args.self_loop == 'True' else False
-
+    if args.n_heads is not None:
+        net_params['n_heads'] = int(args.n_heads)
     net_params['in_dim'] = dataset.train[0][0].ndata['feat'][0].size(0)
     # net_params['in_dim_edge'] = dataset.train_utils[0][0].edata['feat'][0].size(0)
     net_params['in_dim_edge'] = 1
