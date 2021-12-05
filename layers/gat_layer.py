@@ -1,150 +1,341 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from dgl.nn.pytorch import GATConv
 
-class GraphAttentionLayer(nn.Module):
+"""
+    GAT: Graph Attention Network
+    Graph Attention Networks (Veličković et al., ICLR 2018)
+    https://arxiv.org/abs/1710.10903
+"""
+
+
+class GATLayer(nn.Module):
     """
-    Simple GAT layer, similar to https://arxiv.org/abs/1710.10903
-    https://github.com/Diego999/pyGAT
+    Parameters
+    ----------
+    in_dim :
+        Number of input features.
+    out_dim :
+        Number of output features.
+    num_heads : int
+        Number of heads in Multi-Head Attention.
+    dropout :
+        Required for dropout of attn and feat in GATConv
+    batch_norm :
+        boolean flag for batch_norm layer.
+    residual :
+        If True, use residual connection inside this layer. Default: ``False``.
+    activation : callable activation function/layer or None, optional.
+        If not None, applies an activation function to the updated node features.
+
+    Using dgl builtin GATConv by default:
+    https://github.com/graphdeeplearning/benchmarking-gnns/commit/206e888ecc0f8d941c54e061d5dffcc7ae2142fc
     """
 
-    def __init__(self, in_features, out_features, dropout, alpha, concat=True):
-        super(GraphAttentionLayer, self).__init__()
-        self.dropout = dropout
-        self.in_features = in_features
-        self.out_features = out_features
-        self.alpha = alpha
-        self.concat = concat
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=False, activation=F.elu):
+        super().__init__()
+        self.residual = residual
+        self.activation = activation
+        self.batch_norm = batch_norm
 
-        self.W = nn.Parameter(torch.empty(size=(in_features, out_features)))
-        nn.init.xavier_uniform_(self.W.data, gain=1.414)
-        self.a = nn.Parameter(torch.empty(size=(2 * out_features, 1)))
-        nn.init.xavier_uniform_(self.a.data, gain=1.414)
+        if in_dim != (out_dim * num_heads):
+            self.residual = False
 
-        self.leakyrelu = nn.LeakyReLU(self.alpha)
+        self.gatconv = GATConv(in_dim, out_dim, num_heads, dropout, dropout)
+
+        if self.batch_norm:
+            self.batchnorm_h = nn.BatchNorm1d(out_dim * num_heads)
 
     def forward(self, g, h):
-        adj = g.adj
-        Wh = torch.mm(h, self.W)  # h.shape: (N, in_features), Wh.shape: (N, out_features)
-        e = self._prepare_attentional_mechanism_input(Wh)
+        h_in = h  # for residual connection
 
-        zero_vec = -9e15 * torch.ones_like(e)
-        attention = torch.where(adj > 0, e, zero_vec)
-        attention = F.softmax(attention, dim=1)
-        attention = F.dropout(attention, self.dropout, training=self.training)
-        h_prime = torch.matmul(attention, Wh)
+        h = self.gatconv(g, h).flatten(1)
 
-        if self.concat:
-            return F.elu(h_prime)
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+
+        if self.activation:
+            h = self.activation(h)
+
+        if self.residual:
+            h = h_in + h  # residual connection
+
+        return h
+
+
+##############################################################
+#
+# Additional layers for edge feature/representation analysis
+#
+##############################################################
+
+
+class CustomGATHeadLayer(nn.Module):
+    def __init__(self, in_dim, out_dim, dropout, batch_norm):
+        super().__init__()
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+
+        self.fc = nn.Linear(in_dim, out_dim, bias=False)
+        self.attn_fc = nn.Linear(2 * out_dim, 1, bias=False)
+        self.batchnorm_h = nn.BatchNorm1d(out_dim)
+
+    def edge_attention(self, edges):
+        z2 = torch.cat([edges.src['z'], edges.dst['z']], dim=1)
+        a = self.attn_fc(z2)
+        return {'e': F.leaky_relu(a)}
+
+    def message_func(self, edges):
+        return {'z': edges.src['z'], 'e': edges.data['e']}
+
+    def reduce_func(self, nodes):
+        alpha = F.softmax(nodes.mailbox['e'], dim=1)
+        alpha = F.dropout(alpha, self.dropout, training=self.training)
+        h = torch.sum(alpha * nodes.mailbox['z'], dim=1)
+        return {'h': h}
+
+    def forward(self, g, h):
+        z = self.fc(h)
+        g.ndata['z'] = z
+        g.apply_edges(self.edge_attention)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']
+
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+
+        h = F.elu(h)
+
+        h = F.dropout(h, self.dropout, training=self.training)
+
+        return h
+
+
+class CustomGATLayer(nn.Module):
+    """
+        Param: [in_dim, out_dim, n_heads]
+    """
+
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=True):
+        super().__init__()
+
+        self.in_channels = in_dim
+        self.out_channels = out_dim
+        self.num_heads = num_heads
+        self.residual = residual
+
+        if in_dim != (out_dim * num_heads):
+            self.residual = False
+
+        self.heads = nn.ModuleList()
+        for i in range(num_heads):
+            self.heads.append(CustomGATHeadLayer(in_dim, out_dim, dropout, batch_norm))
+        self.merge = 'cat'
+
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+
+        head_outs = [attn_head(g, h) for attn_head in self.heads]
+
+        if self.merge == 'cat':
+            h = torch.cat(head_outs, dim=1)
         else:
-            return h_prime
+            h = torch.mean(torch.stack(head_outs))
 
-    def _prepare_attentional_mechanism_input(self, Wh):
-        # Wh.shape (N, out_feature)
-        # self.a.shape (2 * out_feature, 1)
-        # Wh1&2.shape (N, 1)
-        # e.shape (N, N)
-        Wh1 = torch.matmul(Wh, self.a[:self.out_features, :])
-        Wh2 = torch.matmul(Wh, self.a[self.out_features:, :])
-        # broadcast add
-        e = Wh1 + Wh2.T
-        return self.leakyrelu(e)
+        if self.residual:
+            h = h_in + h  # residual connection
+
+        return h, e
 
     def __repr__(self):
-        return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
+        return '{}(in_channels={}, out_channels={}, heads={}, residual={})'.format(self.__class__.__name__,
+                                                                                   self.in_channels,
+                                                                                   self.out_channels, self.num_heads,
+                                                                                   self.residual)
 
 
-class SpecialSpmmFunction(torch.autograd.Function):
-    """Special function for only sparse region backpropataion layer."""
-
-    @staticmethod
-    def forward(ctx, indices, values, shape, b):
-        assert indices.requires_grad == False
-        a = torch.sparse_coo_tensor(indices, values, shape)
-        ctx.save_for_backward(a, b)
-        ctx.N = shape[0]
-        return torch.matmul(a, b)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        a, b = ctx.saved_tensors
-        grad_values = grad_b = None
-        if ctx.needs_input_grad[1]:
-            grad_a_dense = grad_output.matmul(b.t())
-            edge_idx = a._indices()[0, :] * ctx.N + a._indices()[1, :]
-            grad_values = grad_a_dense.view(-1)[edge_idx]
-        if ctx.needs_input_grad[3]:
-            grad_b = a.t().matmul(grad_output)
-        return None, grad_values, None, grad_b
+##############################################################
 
 
-class SpecialSpmm(nn.Module):
-    def forward(self, indices, values, shape, b):
-        return SpecialSpmmFunction.apply(indices, values, shape, b)
+class CustomGATHeadLayerEdgeReprFeat(nn.Module):
+    def __init__(self, in_dim, out_dim, dropout, batch_norm):
+        super().__init__()
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+
+        self.fc_h = nn.Linear(in_dim, out_dim, bias=False)
+        self.fc_e = nn.Linear(in_dim, out_dim, bias=False)
+        self.fc_proj = nn.Linear(3 * out_dim, out_dim)
+        self.attn_fc = nn.Linear(3 * out_dim, 1, bias=False)
+        self.batchnorm_h = nn.BatchNorm1d(out_dim)
+        self.batchnorm_e = nn.BatchNorm1d(out_dim)
+
+    def edge_attention(self, edges):
+        z = torch.cat([edges.data['z_e'], edges.src['z_h'], edges.dst['z_h']], dim=1)
+        e_proj = self.fc_proj(z)
+        attn = F.leaky_relu(self.attn_fc(z))
+        return {'attn': attn, 'e_proj': e_proj}
+
+    def message_func(self, edges):
+        return {'z': edges.src['z_h'], 'attn': edges.data['attn']}
+
+    def reduce_func(self, nodes):
+        alpha = F.softmax(nodes.mailbox['attn'], dim=1)
+        h = torch.sum(alpha * nodes.mailbox['z'], dim=1)
+        return {'h': h}
+
+    def forward(self, g, h, e):
+        z_h = self.fc_h(h)
+        z_e = self.fc_e(e)
+        g.ndata['z_h'] = z_h
+        g.edata['z_e'] = z_e
+
+        g.apply_edges(self.edge_attention)
+
+        g.update_all(self.message_func, self.reduce_func)
+
+        h = g.ndata['h']
+        e = g.edata['e_proj']
+
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+            e = self.batchnorm_e(e)
+
+        h = F.elu(h)
+        e = F.elu(e)
+
+        h = F.dropout(h, self.dropout, training=self.training)
+        e = F.dropout(e, self.dropout, training=self.training)
+
+        return h, e
 
 
-class SpGraphAttentionLayer(nn.Module):
+class CustomGATLayerEdgeReprFeat(nn.Module):
     """
-    Sparse version GAT layer, similar to https://arxiv.org/abs/1710.10903
+        Param: [in_dim, out_dim, n_heads]
     """
 
-    def __init__(self, in_features, out_features, dropout, alpha, concat=True):
-        super(SpGraphAttentionLayer, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.alpha = alpha
-        self.concat = concat
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=True):
+        super().__init__()
 
-        self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
-        nn.init.xavier_normal_(self.W.data, gain=1.414)
+        self.in_channels = in_dim
+        self.out_channels = out_dim
+        self.num_heads = num_heads
+        self.residual = residual
 
-        self.a = nn.Parameter(torch.zeros(size=(1, 2 * out_features)))
-        nn.init.xavier_normal_(self.a.data, gain=1.414)
+        if in_dim != (out_dim * num_heads):
+            self.residual = False
 
-        self.dropout = nn.Dropout(dropout)
-        self.leakyrelu = nn.LeakyReLU(self.alpha)
-        self.special_spmm = SpecialSpmm()
+        self.heads = nn.ModuleList()
+        for i in range(num_heads):
+            self.heads.append(CustomGATHeadLayerEdgeReprFeat(in_dim, out_dim, dropout, batch_norm))
+        self.merge = 'cat'
 
-    def forward(self, input, adj):
-        dv = 'cuda' if input.is_cuda else 'cpu'
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+        e_in = e
 
-        N = input.size()[0]
-        edge = adj.nonzero().t()
+        head_outs_h = []
+        head_outs_e = []
+        for attn_head in self.heads:
+            h_temp, e_temp = attn_head(g, h, e)
+            head_outs_h.append(h_temp)
+            head_outs_e.append(e_temp)
 
-        h = torch.mm(input, self.W)
-        # h: N x out
-        assert not torch.isnan(h).any()
-
-        # Self-attention on the nodes - Shared attention mechanism
-        edge_h = torch.cat((h[edge[0, :], :], h[edge[1, :], :]), dim=1).t()
-        # edge: 2*D x E
-
-        edge_e = torch.exp(-self.leakyrelu(self.a.mm(edge_h).squeeze()))
-        assert not torch.isnan(edge_e).any()
-        # edge_e: E
-
-        e_rowsum = self.special_spmm(edge, edge_e, torch.Size([N, N]), torch.ones(size=(N, 1), device=dv))
-        # e_rowsum: N x 1
-
-        edge_e = self.dropout(edge_e)
-        # edge_e: E
-
-        h_prime = self.special_spmm(edge, edge_e, torch.Size([N, N]), h)
-        assert not torch.isnan(h_prime).any()
-        # h_prime: N x out
-
-        h_prime = h_prime.div(e_rowsum)
-        # h_prime: N x out
-        assert not torch.isnan(h_prime).any()
-
-        if self.concat:
-            # if this layer is not last layer,
-            return F.elu(h_prime)
+        if self.merge == 'cat':
+            h = torch.cat(head_outs_h, dim=1)
+            e = torch.cat(head_outs_e, dim=1)
         else:
-            # if this layer is last layer,
-            return h_prime
+            raise NotImplementedError
+
+        if self.residual:
+            h = h_in + h  # residual connection
+            e = e_in + e
+
+        return h, e
 
     def __repr__(self):
-        return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
+        return '{}(in_channels={}, out_channels={}, heads={}, residual={})'.format(self.__class__.__name__,
+                                                                                   self.in_channels,
+                                                                                   self.out_channels, self.num_heads,
+                                                                                   self.residual)
+
+
+##############################################################
+
+
+class CustomGATHeadLayerIsotropic(nn.Module):
+    def __init__(self, in_dim, out_dim, dropout, batch_norm):
+        super().__init__()
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+
+        self.fc = nn.Linear(in_dim, out_dim, bias=False)
+        self.batchnorm_h = nn.BatchNorm1d(out_dim)
+
+    def message_func(self, edges):
+        return {'z': edges.src['z']}
+
+    def reduce_func(self, nodes):
+        h = torch.sum(nodes.mailbox['z'], dim=1)
+        return {'h': h}
+
+    def forward(self, g, h):
+        z = self.fc(h)
+        g.ndata['z'] = z
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']
+
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+
+        h = F.elu(h)
+
+        h = F.dropout(h, self.dropout, training=self.training)
+
+        return h
+
+
+class CustomGATLayerIsotropic(nn.Module):
+    """
+        Param: [in_dim, out_dim, n_heads]
+    """
+
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=True):
+        super().__init__()
+
+        self.in_channels = in_dim
+        self.out_channels = out_dim
+        self.num_heads = num_heads
+        self.residual = residual
+
+        if in_dim != (out_dim * num_heads):
+            self.residual = False
+
+        self.heads = nn.ModuleList()
+        for i in range(num_heads):
+            self.heads.append(CustomGATHeadLayerIsotropic(in_dim, out_dim, dropout, batch_norm))
+        self.merge = 'cat'
+
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+
+        head_outs = [attn_head(g, h) for attn_head in self.heads]
+
+        if self.merge == 'cat':
+            h = torch.cat(head_outs, dim=1)
+        else:
+            h = torch.mean(torch.stack(head_outs))
+
+        if self.residual:
+            h = h_in + h  # residual connection
+
+        return h, e
+
+    def __repr__(self):
+        return '{}(in_channels={}, out_channels={}, heads={}, residual={})'.format(self.__class__.__name__,
+                                                                                   self.in_channels,
+                                                                                   self.out_channels, self.num_heads,
+                                                                                   self.residual)

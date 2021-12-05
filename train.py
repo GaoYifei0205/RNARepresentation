@@ -396,8 +396,8 @@ def main():
     if args.max_time is not None:
         params['max_time'] = float(args.max_time)
 
-    if args.nfeat is not None:
-        params['nfeat'] = int(args.nfeat)
+    if args.n_heads is not None:
+        params['n_heads'] = int(args.n_heads)
 
     # network parameters
     net_params = config['net_params']

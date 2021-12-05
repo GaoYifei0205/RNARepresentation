@@ -13,7 +13,7 @@ import dgl
 from layers.gcn_layer import GCNLayer, ConvReadoutLayer, GNNPoolLayer, WeightCrossLayer
 from layers.mlp_readout_layer import MLPReadout
 from layers.conv_layer import ConvLayer, MAXPoolLayer
-from layers.gat_layer import GraphAttentionLayer
+
 
 class GCNNet(nn.Module):
     def __init__(self, net_params):
