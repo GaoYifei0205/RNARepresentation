@@ -10,8 +10,8 @@ import dgl
     https://arxiv.org/abs/1710.10903
 """
 
-from benchmarking.layers.gat_layer import GATLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
-from benchmarking.layers.mlp_readout_layer import MLPReadout
+from layers.gat_layer import GATLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
+from layers.mlp_readout_layer import MLPReadout
 
 
 class GATNet(nn.Module):

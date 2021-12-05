@@ -234,7 +234,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         pass
 
 
-def self_loop(g):
+def self_loop(g: object) -> object:
     """
         Utility function only, to be used only when necessary as per user self_loop flag
         : Overwriting the function dgl.transform.add_self_loop() to not miss ndata['feat'] and edata['feat']
