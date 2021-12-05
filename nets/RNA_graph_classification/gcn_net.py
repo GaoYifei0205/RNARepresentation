@@ -2,7 +2,6 @@ import torch
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-from layers.gat_layer import GraphAttentionLayer
 import dgl
 
 """
@@ -13,7 +12,7 @@ import dgl
 from layers.gcn_layer import GCNLayer, ConvReadoutLayer, GNNPoolLayer, WeightCrossLayer
 from layers.mlp_readout_layer import MLPReadout
 from layers.conv_layer import ConvLayer, MAXPoolLayer
-
+from layers.gat_layer import GraphAttentionLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
 
 class GCNNet(nn.Module):
     def __init__(self, net_params):
@@ -36,6 +35,13 @@ class GCNNet(nn.Module):
         self.sequence = None
         self.filter_out = None
 
+        self.layer_type = {
+            "dgl": GraphAttentionLayer,
+            "edgereprfeat": CustomGATLayerEdgeReprFeat,
+            "edgefeat": CustomGATLayer,
+            "isotropic": CustomGATLayerIsotropic,
+        }.get(net_params['layer_type'], GraphAttentionLayer)
+
         window_size = 501
         conv_kernel1, conv_kernel2 = [9, 4], [9, 1]
         conv_padding, conv_stride = [conv_kernel1[0]//2, 0], 1
@@ -52,14 +58,15 @@ class GCNNet(nn.Module):
         #print("n_layers is ", self.n_layers) n_layers = 2
 
         self.layers_gnn = nn.ModuleList()
+        # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         for _ in range(self.n_layers * 2 - 2):
-            self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, num_heads, dropout, self.batch_norm))
+            self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
             # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))
         self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
-
+        # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, out_dim, 1, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GNNPoolLayer())
         # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GNNPoolLayer())
