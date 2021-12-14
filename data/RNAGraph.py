@@ -270,10 +270,10 @@ class RNADataset(torch.utils.data.Dataset):
         self.name = name
         if config['debias'] == "True":
             print("data debiased!")
-            data_dir = 'data/GraphProt_CLIP_sequences/RNAGraphProb_debias/'
+            data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb_debias/'
         else:
             print("data biased!")
-            data_dir = 'data/GraphProt_CLIP_sequences/RNAGraphProb/'
+            data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
         with open(data_dir + name + '.pkl', "rb") as f:
             f = pickle.load(f)
@@ -396,11 +396,11 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         self.name = name
 
         print("processing test data")
-        self.test = RNAGraphDGL("./data/", dataset=self.name, split='ls',
+        self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='ls',
                                 fold_algo='rnaplfold', debias=debias, probabilistic=True, )
 
         print("processing train data")
-        self.train_ = RNAGraphDGL("./data/", dataset=self.name, split='train',
+        self.train_ = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='train',
                                   fold_algo='rnaplfold', debias=debias, probabilistic=True)
 
         inds = np.random.permutation(np.arange(0, int(len(self.train_))))

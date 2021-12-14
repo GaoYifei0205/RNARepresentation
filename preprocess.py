@@ -11,7 +11,8 @@ debias = sys.argv[2]
 # os.chdir('../../') # go to root folder of the project
 print(os.getcwd())
 
-basedir = os.getcwd()
+# basedir = os.getcwd()
+basedir = '/data/gaoyifei'
 if debias == 'True':
     path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb_debias')
 else:

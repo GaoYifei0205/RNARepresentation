@@ -58,15 +58,19 @@ class GCNNet(nn.Module):
         #print("n_layers is ", self.n_layers) n_layers = 2
 
         self.layers_gnn = nn.ModuleList()
-        # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
-        self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+        # self.layers_gnn = nn.ModuleList([self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads,
+        #                                              dropout, self.batch_norm, self.residual) for _ in
+        #                                             range(self.n_layers * 2 - 1)])
+        # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, out_dim, 1, dropout, self.batch_norm))
+
+        self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm))
         for _ in range(self.n_layers * 2 - 2):
             self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
             # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
-        # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
-        # self.layers_gnn.append(GraphAttentionLayer(hidden_dim, hidden_dim, 0.6, 0.2))
-        self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
-        # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, out_dim, 1, dropout, self.batch_norm, self.residual))
+        self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+
+        # self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+
         # self.layers_gnn.append(GNNPoolLayer())
         # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         # self.layers_gnn.append(GNNPoolLayer())
