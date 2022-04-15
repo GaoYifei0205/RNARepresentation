@@ -30,12 +30,12 @@ def adj_to_bias(adj, nhood=1):
     return -1e9 * (1.0 - mt)
 
 
-# >>>> equilibrium probability using RNAplfold >>>>>>>
+# >>>> equilibrium probability using RNAshapes >>>>>>>
 
 def fold_seq_rnashapes(seq, winsize, iterations=100):
     stride = winsize // 4
     cmd = 'echo %s | RNAshapes -w %d -W %d -i %d -A -t 1 -c %d -M 0 -o 1' % (seq, winsize, stride, iterations, 10)
-    ret = subprocess.check_output(cmd, shell=True)
+    ret = subprocess.check_output(cmd, shell=True) #获取外部命令返回值
     lines = re.sub(' +', ' ', ret.decode('utf-8')).rstrip().split('\n')
 
     # assemble adjacency matrix
@@ -97,7 +97,7 @@ def fold_seq_rnashapes(seq, winsize, iterations=100):
 
 # >>>> equilibrium probability using RNAplfold >>>>>>>
 # when on compute canada, make sure this is happening on the compute nodes
-
+#w:winsize, l=min(winsize,150),cutoff=1e-4, no_lonely_bps=True
 def fold_seq_rnaplfold(seq, w, l, cutoff, no_lonely_bps):
     np.random.seed(random.seed())
     name = str(np.random.rand())
@@ -282,6 +282,25 @@ def fold_seq_rnafold(seq):
     matrix = adj_mat(struct)
     return structural_content([struct]), matrix
 
+def fold_seq_mxfold2(filepath, seq):
+    struct = search(filepath, seq)
+    matrix = adj_mat(struct)
+    return structural_content([struct]), matrix
+
+def search(filepath, seq: str):
+    d = {}
+    with open(os.path.join(os.path.dirname(filepath), 'structure.txt')) as file:
+        key = None
+        for line in file:
+            if line.startswith(">"):
+                continue
+            if key:
+                l = line.split(" ")
+                d[key] = l[0]
+                key = None
+            else:
+                key = line[:-1]
+    return d[seq]
 
 def adj_mat(struct):
     # create sparse matrix
@@ -356,8 +375,8 @@ def load_dotbracket(filepath, pool=None, fold_algo='rnafold', probabilistic=Fals
         os.path.join(os.path.dirname(filepath), '{}structures.npy'.format(prefix)))
     return all_struct
 
-
-def load_mat(filepath, pool=None, fold_algo='rnafold', probabilistic=False, **kwargs):
+#RNAfold:1983,RNAplfold:2006,RNAshapes:2006
+def load_mat(filepath, pool=None, fold_algo='mxfold2', probabilistic=False, **kwargs):
     prefix = '%s_%s_' % (fold_algo, probabilistic)
     # folding length is crucial hyperparam for local RNA folding, therefore should be marked
     if fold_algo == 'rnaplfold' or fold_algo == 'rnashapes':
@@ -479,9 +498,9 @@ def detect_motifs(model, data_loader, device, output_dir='motifs'):
     get_motif(filter_weights[:, 0, :, :], filter_out_list, seq_list, dir1=output_dir + '/size7', filter_size=7)
 
 
-def fold_rna_from_file(filepath, p=None, fold_algo='rnafold', probabilistic=False, **kwargs):
-    assert (fold_algo in ['rnafold', 'rnasubopt', 'rnaplfold'])
-    if fold_algo == 'rnafold':
+def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=False, **kwargs):
+    assert (fold_algo in ['rnafold', 'rnasubopt', 'rnaplfold', 'mxfold2'])
+    if fold_algo == 'rnafold' or fold_algo == 'mxfold2':
         assert (probabilistic is False)
     if fold_algo == 'rnaplfold':
         assert (probabilistic is True)
@@ -502,6 +521,7 @@ def fold_rna_from_file(filepath, p=None, fold_algo='rnafold', probabilistic=Fals
 
     if fold_algo == 'rnafold':
         fold_func = fold_seq_rnafold
+        # imap 多进程计算,计算结果会缓存在内存中，内存可能用尽
         res = list(pool.imap(fold_func, all_seq))
         sp_rel_matrix = []
         structural_content = []
@@ -512,6 +532,20 @@ def fold_rna_from_file(filepath, p=None, fold_algo='rnafold', probabilistic=Fals
                 np.array(structural_content))  # [size, length, 3]
         pickle.dump(sp_rel_matrix,
                     open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
+
+    elif fold_algo == 'mxfold2':
+        fold_func = partial(fold_seq_mxfold2, filepath=os.path.dirname(filepath))
+        res = list(pool.imap(fold_func, all_seq))
+        sp_rel_matrix = []
+        structural_content = []
+        for struct, matrix in res:
+            structural_content.append(struct)
+            sp_rel_matrix.append(matrix)
+        np.save(os.path.join(os.path.dirname(filepath), '{}structures.npy'.format(prefix)),
+                np.array(structural_content))  # [size, length, 3]
+        pickle.dump(sp_rel_matrix,
+                    open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
+
     elif fold_algo == 'rnasubopt':
         fold_func = partial(fold_seq_subopt, fold_algo=fold_algo, probabilistic=probabilistic)
         res = list(pool.imap(fold_func, all_seq))
