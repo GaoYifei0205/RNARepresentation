@@ -283,25 +283,32 @@ def fold_seq_rnafold(seq):
     return structural_content([struct]), matrix
 
 def fold_seq_mxfold2(filepath, seq):
-    struct = search(filepath, seq)
+    with open(os.path.join(os.path.dirname(filepath), 'structure.txt')) as file:
+        struct = search(file, seq)
     matrix = adj_mat(struct)
     return structural_content([struct]), matrix
 
-def search(filepath, seq: str):
+
+def search(file, seq: str):
     d = {}
-    with open(os.path.join(os.path.dirname(filepath), 'structure.txt')) as file:
-        key = None
-        for line in file:
-            if line.startswith(">"):
-                continue
-            if key:
-                l = line.split(" ")
-                d[key] = l[0]
-                key = None
-            else:
-                key = line[:-1]
+    key = None
+    for line in file:
+        if line.startswith(">"):
+            continue
+        if key:
+            l = line.split(" ")
+            key = key.replace('T', 'U')
+            key = key.replace('t', 'u')
+            d[key] = l[0]
+            key = None
+        else:
+            key = line[:-1]
+    if not seq in d:
+        print(seq)
+        exit(-1)
     return d[seq]
 
+# structure to matrix
 def adj_mat(struct):
     # create sparse matrix
     row_col, data = [], []
@@ -424,7 +431,7 @@ def load_seq(filepath):
         seq = all_seq[i]
         # seq = seq[:-1].upper()
         all_seq[i] = seq.replace('T', 'U')
-        all_seq[i] = seq.replace('t', 'u')
+        all_seq[i] = all_seq[i].replace('t', 'u')
     return all_id, all_seq
 
 
@@ -534,7 +541,7 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
                     open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
 
     elif fold_algo == 'mxfold2':
-        fold_func = partial(fold_seq_mxfold2, filepath=os.path.dirname(filepath))
+        fold_func = partial(fold_seq_mxfold2, filepath)
         res = list(pool.imap(fold_func, all_seq))
         sp_rel_matrix = []
         structural_content = []
@@ -582,7 +589,7 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
         pickle.dump(sp_prob_matrix,
                     open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
     else:
-        raise ValueError('Supported folding algorithms are ' + ', '.join(['rnafold', 'rnasubopt', 'rnaplfold']))
+        raise ValueError('Supported folding algorithms are ' + ', '.join(['mxfold2', 'rnafold', 'rnasubopt', 'rnaplfold']))
 
     if p is None:
         pool.close()

@@ -70,19 +70,23 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         print("convert seq to graph")
         pos_matrix = load_mat(path_template.format(dataset, split, 'positives')
-                                              , pool, fold_algo='mxfold2', load_dense=False, **kwargs)
+                                              , pool, load_dense=False, **kwargs)
         neg_matrix = load_mat(path_template.format(dataset, split, 'negatives')
-                                              , pool, fold_algo='mxfold2', load_dense=False, **kwargs)
+                                              , pool, load_dense=False, **kwargs)
 
-        pos_adjacency_matrix, pos_probability_matrix = pos_matrix
-        neg_adjacency_matrix, neg_probability_matrix = neg_matrix
+        if probabilistic:
+            pos_adjacency_matrix, pos_probability_matrix = pos_matrix
+            neg_adjacency_matrix, neg_probability_matrix = neg_matrix
+        else:
+            pos_probability_matrix = pos_matrix
+            neg_probability_matrix = neg_matrix
         adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
 
-        tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'tensor.pt')
+        tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'reduced_tensor.pt')
         pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
         neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
         tensor_list = pos_tensor + neg_tensor
-
+# killed for C22ORF28_Baltz2012
         print("convert graph to dglgraph")
         self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
 
@@ -248,15 +252,15 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 # GRL version
     def _constructGraph(self, seq, csr_matrix, tensorline):
         grh = dgl.DGLGraph(csr_matrix)
-        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 768))
+        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 25))
 
         #节点表征
         for i in range(len(seq)):
-            grh.ndata['feat'][i] = tensorline[0][i]
-
-        grh.edata['feat'] = torch.tensor(csr_matrix.data)
+            grh.ndata['feat'][i] = tensorline[i]
+        #csr_matrix data为64位整型需格式转换
+        grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
         grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
-
+        #把距离为2的节点和该节点加一条边
         for i in range(len(seq)):
             for j in range(-2, 3):
                 if j == 0 or j == -1 or j == 1:
@@ -267,7 +271,6 @@ class RNAGraphDGL(torch.utils.data.Dataset):
                     continue
                 grh.add_edges(i, i + j)
                 grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
-
         return grh
 
     def __len__(self):
@@ -459,11 +462,11 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
 
         print("processing test data")
         self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='ls',
-                                fold_algo='mxfold2', debias=debias, probabilistic=True, )
+                                fold_algo='mxfold2', debias=debias, probabilistic=False, )
 
         print("processing train data")
         self.train_ = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='train',
-                                  fold_algo='mxfold2', debias=debias, probabilistic=True)
+                                  fold_algo='mxfold2', debias=debias, probabilistic=False)
 
         inds = np.random.permutation(np.arange(0, int(len(self.train_))))
 

@@ -8,6 +8,18 @@ start = time.time()
 DATASET_NAME = sys.argv[1]
 debias = sys.argv[2]
 
+if DATASET_NAME in ['CAPRIN1_Baltz2012', 'PARCLIP_IGF2BP123', 'PARCLIP_MOV10_Sievers', 'ZC3H7B_Baltz2012',
+           'C22ORF28_Baltz2012', 'PARCLIP_ELAVL1A', 'PARCLIP_TAF15', 'PARCLIP_FUS', 'PARCLIP_EWSR1',
+           'PARCLIP_HUR', 'PARCLIP_PUM2', 'PARCLIP_AGO1234', 'ALKBH5_Baltz2012',
+           'C17ORF85_Baltz2012', 'PARCLIP_QKI', 'PARCLIP_ELAVL1', 'CLIPSEQ_SFRS1', 'CLIPSEQ_AGO2',
+           'CLIPSEQ_ELAVL1'] and debias==True:
+    raise ValueError('Warning, %s is not debiased.debias should be set to False!' % (DATASET_NAME))
+
+elif DATASET_NAME in ['ICLIP_HNRNPC', 'ICLIP_TDP43', 'ICLIP_TIA1', 'ICLIP_TIAL1', 'PTBv1'] and debias==False:
+    raise ValueError('Warning, %s is not biased.debias should be set to True!' % (DATASET_NAME))
+
+
+
 # os.chdir('../../') # go to root folder of the project
 print(os.getcwd())
 
@@ -30,13 +42,13 @@ dataset = RNAGraphDatasetDGL(DATASET_NAME, debias=debias)
 
 print('Time (sec):', time.time() - start)  # 356s=6min
 
-print(len(dataset.train))
-print(len(dataset.val))
-print(len(dataset.test))
+print('length of train dataset: ', len(dataset.train))
+print('length of validation dataset: ', len(dataset.val))
+print('length of test dataset: ', len(dataset.test))
 
-print(dataset.train[0])
-print(dataset.val[0])
-print(dataset.test[0])
+print('first element in train dataset: ', dataset.train[0])
+print('first element in validation dataset: ', dataset.val[0])
+print('first element in test dataset: ', dataset.test[0])
 
 start = time.time()
 

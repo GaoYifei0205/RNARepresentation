@@ -29,7 +29,8 @@ class GCNNet(nn.Module):
         self.batch_norm = net_params['batch_norm']
         self.residual = net_params['residual']
         self.n_classes = net_params['n_classes']
-        self.pre_gnn, self.pre_cnn = None, None
+        # self.pre_gnn, self.pre_cnn = None, None
+        self.pre_gnn = None
         self.base_weight = None
         self.node_weight = None
         self.sequence = None
@@ -47,6 +48,7 @@ class GCNNet(nn.Module):
         conv_padding, conv_stride = [conv_kernel1[0]//2, 0], 1
         pooling_kernel = [3, 1]
         pooling_padding, pooling_stride = [pooling_kernel[0]//2, 0], 2
+        #ceil 对浮点数向上取整
         width_o1 = math.ceil((window_size - conv_kernel1[0] + 2 * conv_padding[0] + 1) / conv_stride)
         width_o1 = math.ceil((width_o1 - pooling_kernel[0] + 2 * pooling_padding[0] + 1) / pooling_stride)
         width_o2 = math.ceil((width_o1 - conv_kernel2[0] + 2 * conv_padding[0] + 1) / conv_stride)
@@ -65,8 +67,8 @@ class GCNNet(nn.Module):
 
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm))
         for _ in range(self.n_layers * 2 - 2):
-            self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
-            # self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+            # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
+            self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
 
         # self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
@@ -76,18 +78,18 @@ class GCNNet(nn.Module):
         # self.layers_gnn.append(GNNPoolLayer())
         # GNN end
 
-        # CNN start
-        self.conv_readout_layer = ConvReadoutLayer(self.readout)
-        self.layers_cnn = nn.ModuleList()
-        self.layers_cnn.append(ConvLayer(1, 32, conv_kernel1, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
-        for _ in range(self.n_layers - 1):
-            self.layers_cnn.append(
-                ConvLayer(32, 32, conv_kernel2, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
-
-        self.layers_pool = nn.ModuleList()
-        for _ in range(self.n_layers):
-            self.layers_pool.append(MAXPoolLayer(pooling_kernel, stride=pooling_stride, padding=pooling_padding))
-        # CNN end
+        # # CNN start
+        # self.conv_readout_layer = ConvReadoutLayer(self.readout)
+        # self.layers_cnn = nn.ModuleList()
+        # self.layers_cnn.append(ConvLayer(1, 32, conv_kernel1, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
+        # for _ in range(self.n_layers - 1):
+        #     self.layers_cnn.append(
+        #         ConvLayer(32, 32, conv_kernel2, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
+        #
+        # self.layers_pool = nn.ModuleList()
+        # for _ in range(self.n_layers):
+        #     self.layers_pool.append(MAXPoolLayer(pooling_kernel, stride=pooling_stride, padding=pooling_padding))
+        # # CNN end
 
         # self.cross_weight_layer = nn.ModuleList()
         # self.cross_weight_layer.append(WeightCrossLayer(in_dim=501, out_dim=501//2+1))
@@ -103,9 +105,9 @@ class GCNNet(nn.Module):
         batch_size = len(g.batch_num_nodes())
         window_size = g.batch_num_nodes()[0]
         similar_loss = 0
-        cnn_node_weight = 0
+        # cnn_node_weight = 0
         weight2gnn_list = []
-        weight2cnn_list = []
+        # weight2cnn_list = []
 
         h2 = self._graph2feature(g)
         self.sequence = h2
@@ -120,23 +122,23 @@ class GCNNet(nn.Module):
             h1 = self.layers_gnn[2*i + 1](g, h1)
             #g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
 
-            # CNN
-            h2 = self.layers_cnn[i](h2)
-            if i == 0:
-                self.filter_out = h2
-                cnn_node_weight = torch.mean(h2, dim=1).squeeze(-1)
-                self.base_weight = self.batchnorm_weight(cnn_node_weight)
-                cnn_node_weight = torch.sigmoid(self.batchnorm_weight(cnn_node_weight))
-                # cnn_node_weight = cnn_node_weight.detach()
-            h2 = self.layers_pool[i](h2)
+            # # CNN
+            # h2 = self.layers_cnn[i](h2)
+            # if i == 0:
+            #     self.filter_out = h2
+            #     cnn_node_weight = torch.mean(h2, dim=1).squeeze(-1)
+            #     self.base_weight = self.batchnorm_weight(cnn_node_weight)
+            #     cnn_node_weight = torch.sigmoid(self.batchnorm_weight(cnn_node_weight))
+            #     # cnn_node_weight = cnn_node_weight.detach()
+            # h2 = self.layers_pool[i](h2)
 
             # weight cross
             weight2gnn = torch.flatten(h2.squeeze(-1).permute(0, 2, 1), end_dim=1)
             weight2gnn_list.append(torch.mean(weight2gnn, dim=1).unsqueeze(-1))
 
-            weight2cnn = torch.mean(self.conv_readout_layer(g, h1), dim=1).squeeze(-1)
-            weight2cnn = self.batchnorm_weight(weight2cnn)
-            weight2cnn_list.append(weight2cnn)
+            # weight2cnn = torch.mean(self.conv_readout_layer(g, h1), dim=1).squeeze(-1)
+            # weight2cnn = self.batchnorm_weight(weight2cnn)
+            # weight2cnn_list.append(weight2cnn)
 
             # weight2cnn = self.cross_weight_layer[i](weight2cnn_list[-1].squeeze(-1))
             # h2 = torch.mul(h2, weight2cnn.unsqueeze(1).unsqueeze(-1))
@@ -149,7 +151,7 @@ class GCNNet(nn.Module):
         hg = self.conv_readout_layer(g, h1)
         gnn_node_weight = torch.mean(hg, dim=1).squeeze(-1)
         self.node_weight = self.batchnorm_weight(gnn_node_weight)
-        hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
+        # hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
 
         hg = torch.flatten(hg, start_dim=1)
         hc = torch.flatten(h2, start_dim=1)
