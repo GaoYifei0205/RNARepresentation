@@ -55,7 +55,7 @@ class GCNNet(nn.Module):
         width_o2 = math.ceil((width_o2 - pooling_kernel[0] + 2 * pooling_padding[0] + 1) / pooling_stride)
 
         # GNN start
-        self.embedding_h = nn.Linear(in_dim, hidden_dim)
+        self.embedding_h = nn.Linear(in_dim, hidden_dim) #  in_dim由输入张量的形状决定，out_dim决定了输出张量的形状
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
         #print("n_layers is ", self.n_layers) n_layers = 2
 

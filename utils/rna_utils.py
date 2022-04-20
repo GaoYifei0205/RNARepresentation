@@ -304,8 +304,7 @@ def search(file, seq: str):
         else:
             key = line[:-1]
     if not seq in d:
-        print(seq)
-        exit(-1)
+        raise KeyError(seq + "Not Found structure File")
     return d[seq]
 
 # structure to matrix
@@ -512,6 +511,7 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
     if fold_algo == 'rnaplfold':
         assert (probabilistic is True)
     print('Parsing', filepath)
+
     _, all_seq = load_seq(filepath)
 
     # compatible with already computed structures with RNAfold

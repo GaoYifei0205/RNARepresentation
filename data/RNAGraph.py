@@ -71,6 +71,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         print("convert seq to graph")
         pos_matrix = load_mat(path_template.format(dataset, split, 'positives')
                                               , pool, load_dense=False, **kwargs)
+
         neg_matrix = load_mat(path_template.format(dataset, split, 'negatives')
                                               , pool, load_dense=False, **kwargs)
 
