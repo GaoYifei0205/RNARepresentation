@@ -343,6 +343,7 @@ def main():
     parser.add_argument('--best_epoch', help="best epoch for the result")
 
     parser.add_argument('--nfeat', help="Please give a value for nfeat")
+    parser.add_argument('--fold_algo', help="Please give a value for fold algorithm")
 
     args = parser.parse_args()
     with open(args.config) as f:
@@ -368,7 +369,9 @@ def main():
         DATASET_NAME = args.dataset
     else:
         DATASET_NAME = config['dataset']
-    dataset = LoadData(DATASET_NAME, config)
+    if args.fold_algo is not None:
+        fold_algo = args.fold_algo
+    dataset = LoadData(DATASET_NAME, config, fold_algo)
     if args.out_dir is not None:
         out_dir = args.out_dir
     else:
@@ -449,6 +452,7 @@ def main():
         net_params['self_loop'] = True if args.self_loop == 'True' else False
     if args.n_heads is not None:
         net_params['n_heads'] = int(args.n_heads)
+
     net_params['in_dim'] = dataset.train[0][0].ndata['feat'][0].size(0)
     # net_params['in_dim_edge'] = dataset.train_utils[0][0].edata['feat'][0].size(0)
     net_params['in_dim_edge'] = 1

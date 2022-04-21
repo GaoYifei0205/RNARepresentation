@@ -505,6 +505,7 @@ def detect_motifs(model, data_loader, device, output_dir='motifs'):
 
 
 def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=False, **kwargs):
+    print(probabilistic)
     assert (fold_algo in ['rnafold', 'rnasubopt', 'rnaplfold', 'mxfold2'])
     if fold_algo == 'rnafold' or fold_algo == 'mxfold2':
         assert (probabilistic is False)
@@ -541,17 +542,22 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
                     open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
 
     elif fold_algo == 'mxfold2':
-        fold_func = partial(fold_seq_mxfold2, filepath)
-        res = list(pool.imap(fold_func, all_seq))
-        sp_rel_matrix = []
-        structural_content = []
-        for struct, matrix in res:
-            structural_content.append(struct)
-            sp_rel_matrix.append(matrix)
-        np.save(os.path.join(os.path.dirname(filepath), '{}structures.npy'.format(prefix)),
-                np.array(structural_content))  # [size, length, 3]
-        pickle.dump(sp_rel_matrix,
-                    open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
+        a = os.path.exists(os.path.join(os.path.dirname(filepath), '{}structures.npy'.format(prefix)))
+        b = os.path.exists(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)))
+        if a and b:
+            print("already preprocessed!")
+        else:
+            fold_func = partial(fold_seq_mxfold2, filepath)
+            res = list(pool.imap(fold_func, all_seq))
+            sp_rel_matrix = []
+            structural_content = []
+            for struct, matrix in res:
+                structural_content.append(struct)
+                sp_rel_matrix.append(matrix)
+            np.save(os.path.join(os.path.dirname(filepath), '{}structures.npy'.format(prefix)),
+                    np.array(structural_content))  # [size, length, 3]
+            pickle.dump(sp_rel_matrix,
+                        open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
 
     elif fold_algo == 'rnasubopt':
         fold_func = partial(fold_seq_subopt, fold_algo=fold_algo, probabilistic=probabilistic)
@@ -575,19 +581,24 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
             pickle.dump(sp_prob_matrix,
                         open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
     elif fold_algo == 'rnaplfold':
-        winsize = kwargs.get('w', 150)
-        print('running rnaplfold with winsize %d' % (winsize))
-        fold_func = partial(fold_seq_rnaplfold, w=winsize, l=min(winsize, 150), cutoff=1e-4, no_lonely_bps=True)
-        res = list(pool.imap(fold_func, all_seq))
-        sp_rel_matrix = []
-        sp_prob_matrix = []
-        for rel_mat, prob_mat in res:
-            sp_rel_matrix.append(rel_mat)
-            sp_prob_matrix.append(prob_mat)
-        pickle.dump(sp_rel_matrix,
-                    open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
-        pickle.dump(sp_prob_matrix,
-                    open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
+        a = os.path.exists(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)))
+        b = os.path.exists(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)))
+        if a and b:
+            print("already preprocessed!")
+        else:
+            winsize = kwargs.get('w', 150)
+            print('running rnaplfold with winsize %d' % (winsize))
+            fold_func = partial(fold_seq_rnaplfold, w=winsize, l=min(winsize, 150), cutoff=1e-4, no_lonely_bps=True)
+            res = list(pool.imap(fold_func, all_seq))
+            sp_rel_matrix = []
+            sp_prob_matrix = []
+            for rel_mat, prob_mat in res:
+                sp_rel_matrix.append(rel_mat)
+                sp_prob_matrix.append(prob_mat)
+            pickle.dump(sp_rel_matrix,
+                        open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
+            pickle.dump(sp_prob_matrix,
+                        open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
     else:
         raise ValueError('Supported folding algorithms are ' + ', '.join(['mxfold2', 'rnafold', 'rnasubopt', 'rnaplfold']))
 

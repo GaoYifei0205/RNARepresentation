@@ -7,6 +7,8 @@ from data.RNAGraph import RNAGraphDatasetDGL
 start = time.time()
 DATASET_NAME = sys.argv[1]
 debias = sys.argv[2]
+fold_algo = sys.argv[3]
+probabilistic = sys.argv[4]
 
 if DATASET_NAME in ['CAPRIN1_Baltz2012', 'PARCLIP_IGF2BP123', 'PARCLIP_MOV10_Sievers', 'ZC3H7B_Baltz2012',
            'C22ORF28_Baltz2012', 'PARCLIP_ELAVL1A', 'PARCLIP_TAF15', 'PARCLIP_FUS', 'PARCLIP_EWSR1',
@@ -31,14 +33,14 @@ else:
     path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb')
 if os.path.exists(path_template) is False:
     os.mkdir(path_template)
-path_template = os.path.join(path_template, DATASET_NAME + '.pkl')
+path_template = os.path.join(path_template, DATASET_NAME + fold_algo+'.pkl')
 # if os.path.exists(path_template) is True:
 #     print(DATASET_NAME + '.pkl' + " already exists!")
 #     exit()
 # with open(path_template, 'wb') as f:
 #     pickle.dump([], f)
 
-dataset = RNAGraphDatasetDGL(DATASET_NAME, debias=debias)
+dataset = RNAGraphDatasetDGL(DATASET_NAME, fold_algo, probabilistic, debias=debias)
 
 print('Time (sec):', time.time() - start)  # 356s=6min
 

@@ -36,7 +36,7 @@ class DGLFormDataset(torch.utils.data.Dataset):
 
 
 class RNAGraphDGL(torch.utils.data.Dataset):
-    def __init__(self, data_dir, dataset, split, p=None, debias="False", **kwargs):
+    def __init__(self, data_dir, dataset, split, fold_algo, probabilistic, p=None, debias="False", **kwargs):
 
         self.split = split
         self.debias = debias
@@ -52,9 +52,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         else:
             pool = p
 
-        probabilistic = kwargs.get('probabilistic', True)
         # nucleotide_label = kwargs.get('nucleotide_label', False)
-
         print("read data")
         path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'data.fa')
         if self.debias == 'True':
@@ -70,10 +68,10 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         print("convert seq to graph")
         pos_matrix = load_mat(path_template.format(dataset, split, 'positives')
-                                              , pool, load_dense=False, **kwargs)
+                                              , pool, fold_algo, probabilistic, load_dense=False, **kwargs)
 
         neg_matrix = load_mat(path_template.format(dataset, split, 'negatives')
-                                              , pool, load_dense=False, **kwargs)
+                                              , pool, fold_algo, probabilistic, load_dense=False, **kwargs)
 
         if probabilistic:
             pos_adjacency_matrix, pos_probability_matrix = pos_matrix
@@ -327,7 +325,7 @@ def self_loop(g: object) -> object:
 
 
 class RNADataset(torch.utils.data.Dataset):
-    def __init__(self, name, config, window_size=501):
+    def __init__(self, name, config, fold_algo, window_size=501):
         """
             Loading Superpixels datasets
         """
@@ -341,7 +339,7 @@ class RNADataset(torch.utils.data.Dataset):
             print("data biased!")
             data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
-        with open(data_dir + name + '.pkl', "rb") as f:
+        with open(data_dir + name + fold_algo + '.pkl', "rb") as f:
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]
@@ -446,7 +444,7 @@ class RNADataset(torch.utils.data.Dataset):
 
 
 class RNAGraphDatasetDGL(torch.utils.data.Dataset):
-    def __init__(self, name, num_val=0.1, window_size=501, debias='False'):
+    def __init__(self, name, fold_algo, probablistic, num_val=0.1, window_size=501, debias='False'):
         """
             Takes input standard image dataset name (MNIST/CIFAR10)
             and returns the superpixels graph.
@@ -463,11 +461,11 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
 
         print("processing test data")
         self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='ls',
-                                fold_algo='mxfold2', debias=debias, probabilistic=False, )
+                                fold_algo=fold_algo, probabilistic=probablistic, debias=debias)
 
         print("processing train data")
         self.train_ = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='train',
-                                  fold_algo='mxfold2', debias=debias, probabilistic=False)
+                                  fold_algo=fold_algo, probabilistic=probablistic, debias=debias)
 
         inds = np.random.permutation(np.arange(0, int(len(self.train_))))
 

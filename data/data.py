@@ -11,7 +11,7 @@ from data.RNAGraph import RNADataset
 # from data.CSL import CSLDataset
 
 
-def LoadData(DATASET_NAME, config):
+def LoadData(DATASET_NAME, config, fold_algo):
     """
         This function is called in the main.py file 
         returns:
@@ -47,5 +47,5 @@ def LoadData(DATASET_NAME, config):
     # if DATASET_NAME == 'CSL':
     #     return CSLDataset(DATASET_NAME)
 
-    return RNADataset(DATASET_NAME, config)
+    return RNADataset(DATASET_NAME, config, fold_algo)
     
