@@ -30,3 +30,5 @@ class MLPReadout(nn.Module):
             y = F.relu(y)
         y = self.FC_layers[self.L](y)
         return y
+
+    # x,y (128,16032)
