@@ -14,6 +14,7 @@ from layers.mlp_readout_layer import MLPReadout
 from layers.conv_layer import ConvLayer, MAXPoolLayer
 from layers.gat_layer import GraphAttentionLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
 
+
 class GCNNet(nn.Module):
     def __init__(self, net_params):
         super().__init__()
@@ -45,19 +46,19 @@ class GCNNet(nn.Module):
 
         window_size = 501
         conv_kernel1, conv_kernel2 = [9, 4], [9, 1]
-        conv_padding, conv_stride = [conv_kernel1[0]//2, 0], 1
+        conv_padding, conv_stride = [conv_kernel1[0] // 2, 0], 1
         pooling_kernel = [3, 1]
-        pooling_padding, pooling_stride = [pooling_kernel[0]//2, 0], 2
-        #ceil 对浮点数向上取整
+        pooling_padding, pooling_stride = [pooling_kernel[0] // 2, 0], 2
+        # ceil 对浮点数向上取整
         width_o1 = math.ceil((window_size - conv_kernel1[0] + 2 * conv_padding[0] + 1) / conv_stride)
         width_o1 = math.ceil((width_o1 - pooling_kernel[0] + 2 * pooling_padding[0] + 1) / pooling_stride)
         width_o2 = math.ceil((width_o1 - conv_kernel2[0] + 2 * conv_padding[0] + 1) / conv_stride)
         width_o2 = math.ceil((width_o2 - pooling_kernel[0] + 2 * pooling_padding[0] + 1) / pooling_stride)
 
         # GNN start
-        self.embedding_h = nn.Linear(in_dim, hidden_dim) #  in_dim由输入张量的形状决定，out_dim决定了输出张量的形状
+        self.embedding_h = nn.Linear(in_dim, hidden_dim)  # in_dim由输入张量的形状决定，out_dim决定了输出张量的形状
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        #print("n_layers is ", self.n_layers) n_layers = 2
+        # print("n_layers is ", self.n_layers) n_layers = 2
 
         self.layers_gnn = nn.ModuleList()
         # self.layers_gnn = nn.ModuleList([self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads,
@@ -68,7 +69,8 @@ class GCNNet(nn.Module):
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm))
         for _ in range(self.n_layers * 2 - 2):
             # self.layers_gnn.append(self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads, dropout, self.batch_norm))
-            self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
+            self.layers_gnn.append(
+                GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
         self.layers_gnn.append(GCNLayer(hidden_dim, hidden_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
 
         # self.layers_gnn.append(GCNLayer(hidden_dim, out_dim, F.leaky_relu, dropout, self.batch_norm, self.residual))
@@ -81,7 +83,8 @@ class GCNNet(nn.Module):
         # # CNN start
         self.conv_readout_layer = ConvReadoutLayer(self.readout)
         self.layers_cnn = nn.ModuleList()
-        self.layers_cnn.append(ConvLayer(1, 32, conv_kernel1, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
+        self.layers_cnn.append(
+            ConvLayer(1, 32, conv_kernel1, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
         for _ in range(self.n_layers - 1):
             self.layers_cnn.append(
                 ConvLayer(32, 32, conv_kernel2, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
@@ -96,12 +99,14 @@ class GCNNet(nn.Module):
         # self.cross_weight_layer.append(WeightCrossLayer(in_dim=501, out_dim=501//4+1))
         self.batchnorm_weight = nn.BatchNorm1d(501)
 
-        input_dim = width_o2*32
+        input_dim = width_o2 * 32
         # input_dim = 2016
-        self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
-        #501*32 + 2016 = 18048
-    def forward(self, g, h, e):     #g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
-        #详见train_RNAGraph_graph_classification.py
+        # self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
+        self.MLP_layer = MLPReadout(376896, self.n_classes)
+        # 501*32 + 2016 = 18048
+
+    def forward(self, g, h, e):  # g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
+        # 详见train_RNAGraph_graph_classification.py
         batch_size = len(g.batch_num_nodes())
         window_size = g.batch_num_nodes()[0]
         similar_loss = 0
@@ -112,43 +117,45 @@ class GCNNet(nn.Module):
         h2 = self._graph2feature(g)
         self.sequence = h2
         h2 = h2.to(self.device)
+        # h2: torch.Size([128, 1, 501, 25])
 
-        h1 = self.embedding_h(h)  #h1:(64128, 32)  h:(64128, 25)
+        h1 = self.embedding_h(h)  # h1:(64128, 32)  h:(64128, 25)
         # print(h1.shape)
-        h1 = self.in_feat_dropout(h1)#h1:(64128, 32)
+        h1 = self.in_feat_dropout(h1)  # h1:(64128, 32)
         # print(h1.shape)
         # print("loop start")
         # h2 = torch.unsqueeze(feature, dim=1)
         for i in range(self.n_layers):
             # GNN
-            h1 = self.layers_gnn[2*i](g, h1)
-            h1 = self.layers_gnn[2*i + 1](g, h1)
-            #g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
+            h1 = self.layers_gnn[2 * i](g, h1)
+            h1 = self.layers_gnn[2 * i + 1](g, h1)
+            # g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
 
             # CNN
-            h2 = self.layers_cnn[i](h2)
+            h2 = self.layers_cnn[i](h2)  # torch.Size([128, 32, 501, 22])
             if i == 0:
                 self.filter_out = h2
                 cnn_node_weight = torch.mean(h2, dim=1).squeeze(-1)
                 self.base_weight = self.batchnorm_weight(cnn_node_weight)
-                cnn_node_weight = torch.sigmoid(self.batchnorm_weight(cnn_node_weight))
+                cnn_node_weight = torch.sigmoid(self.batchnorm_weight(cnn_node_weight))  # torch.Size([128, 501, 22])
                 # cnn_node_weight = cnn_node_weight.detach()
-            h2 = self.layers_pool[i](h2)
+
+            h2 = self.layers_pool[i](h2)  # torch.Size([128, 32, 251, 11])
 
             # weight cross
-            print(h2.shape)
-            weight2gnn = torch.flatten(h2.squeeze(-1).permute(0, 2, 1), end_dim=1)
-            weight2gnn_list.append(torch.mean(weight2gnn, dim=1).unsqueeze(-1))
+            # print("shape", h2.shape)
+            # weight2gnn = torch.flatten(h2.squeeze(-1).permute(0, 2, 1), end_dim=1)
+            # weight2gnn_list.append(torch.mean(weight2gnn, dim=1).unsqueeze(-1))
 
-            weight2cnn = torch.mean(self.conv_readout_layer(g, h1), dim=1).squeeze(-1)
-            weight2cnn = self.batchnorm_weight(weight2cnn)
-            weight2cnn_list.append(weight2cnn)
+            # weight2cnn = torch.mean(self.conv_readout_layer(g, h1), dim=1).squeeze(-1)
+            # weight2cnn = self.batchnorm_weight(weight2cnn)
+            # weight2cnn_list.append(weight2cnn)
 
-            weight2cnn = self.cross_weight_layer[i](weight2cnn_list[-1].squeeze(-1))
-            h2 = torch.mul(h2, weight2cnn.unsqueeze(1).unsqueeze(-1))
-
-        similar_loss += torch.mean(torch.norm(cnn_node_weight - weight2cnn_list[-1], dim=1))
-        self.similar_loss = similar_loss
+        #     weight2cnn = self.cross_weight_layer[i](weight2cnn_list[-1].squeeze(-1))
+        #     h2 = torch.mul(h2, weight2cnn.unsqueeze(1).unsqueeze(-1))
+        #
+        # similar_loss += torch.mean(torch.norm(cnn_node_weight - weight2cnn_list[-1], dim=1))
+        # self.similar_loss = similar_loss
 
         g.ndata['h'] = h1
 
@@ -156,13 +163,16 @@ class GCNNet(nn.Module):
 
         gnn_node_weight = torch.mean(hg, dim=1).squeeze(-1)
         self.node_weight = self.batchnorm_weight(gnn_node_weight)
-        hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
+        # hg.shape: torch.Size([128, 32, 501, 1])
+        # cnn_node_weight.shape: torch.Size([128, 501, 22])
+        # cnn_node_weight.unsqueeze(1).unsqueeze(-1).shape: torch.Size([128, 1, 501, 22, 1])
+        hg = torch.mul(hg, cnn_node_weight.unsqueeze(1))
 
-        hg = torch.flatten(hg, start_dim=1)
+        hg = torch.flatten(hg, start_dim=1)  # 128 32 22
         hc = torch.flatten(h2, start_dim=1)
 
         h_final = torch.cat([hg, hc], dim=1)
-        # h_final = hg  #(128, 16032)
+        # h_final = hg  #(128, 24896)
         pred = self.MLP_layer(h_final)
 
         return pred
