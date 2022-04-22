@@ -81,14 +81,14 @@ class RNAGraphDGL(torch.utils.data.Dataset):
             neg_probability_matrix = neg_matrix
         adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
 
-        tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'reduced_tensor.pt')
-        pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
-        neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
-        tensor_list = pos_tensor + neg_tensor
+        # tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'reduced_tensor.pt')
+        # pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
+        # neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
+        # tensor_list = pos_tensor + neg_tensor
 # killed for C22ORF28_Baltz2012
         print("convert graph to dglgraph")
-        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
-
+        # self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
+        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix)
         # data_path = os.path.join(data_dir, dataset + '_graphs_' + split + '.pkl')
         # with open(data_path, "rb") as f:
         #     f = pickle.load(f)
@@ -186,80 +186,31 @@ class RNAGraphDGL(torch.utils.data.Dataset):
     #         dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i]))
     #     return dgl_graph_list
 # tensor_list[i]对应每个序列的tensor
-    def _convert2dglgraph(self, seq_list, csr_matrixs, tensor_list):
+    def _convert2dglgraph(self, seq_list, csr_matrixs):
         dgl_graph_list = []
         for i in tqdm(range(len(csr_matrixs))):
-            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i], tensor_list[i]))
+            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i]))
         return dgl_graph_list
 
-    # def _constructGraph(self, seq, csr_matrix):
-    #     seq_upper = seq.upper()
-    #     d = {'A': torch.tensor([[1., 0., 0., 0.]]),
-    #          'G': torch.tensor([[0., 1., 0., 0.]]),
-    #          'C': torch.tensor([[0., 0., 1., 0.]]),
-    #          'U': torch.tensor([[0., 0., 0., 1.]]),
-    #          'T': torch.tensor([[0., 0., 0., 1.]])}
-    #
-    #     grh = dgl.DGLGraph(csr_matrix)
-    #
-    #     grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 4))
-    #
-    #     #节点表征
-    #     for i in range(len(seq)):
-    #         grh.ndata['feat'][i] = d[seq_upper[i]]
-    #
-    #     grh.edata['feat'] = torch.tensor(csr_matrix.data)
-    #     grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
-    #
-    #     for i in range(len(seq)):
-    #         for j in range(-2, 3):
-    #             if j == 0 or j == -1 or j == 1:
-    #                 continue
-    #             if i + j < 0 or i + j > len(seq) - 1:
-    #                 continue
-    #             if grh.has_edges_between(i, i + j):
-    #                 continue
-    #             grh.add_edges(i, i + j)
-    #             grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
-    #
-    #     return grh
-    #
-    # def __len__(self):
-    #     """Return the number of graphs in the dataset."""
-    #     return self.n_samples
-    #
-    # def __getitem__(self, idx):
-    #     """
-    #         Get the idx^th sample.
-    #         Parameters
-    #         ---------
-    #         idx : int
-    #             The sample index.
-    #         Returns
-    #         -------
-    #         (dgl.DGLGraph, int)
-    #             DGLGraph with node feature stored in `feat` field
-    #             And its label.
-    #     """
-    #     return self.graph_lists[idx], self.graph_labels[idx]
-    #
-    # def __setitem__(self, idx, v):
-    #     self.graph_lists[idx], self.graph_labels[idx] = v
-    #     self.labels[idx] = v[1].item()
-    #     pass
+    def _constructGraph(self, seq, csr_matrix):
+        seq_upper = seq.upper()
+        d = {'A': torch.tensor([[1., 0., 0., 0.]]),
+             'G': torch.tensor([[0., 1., 0., 0.]]),
+             'C': torch.tensor([[0., 0., 1., 0.]]),
+             'U': torch.tensor([[0., 0., 0., 1.]]),
+             'T': torch.tensor([[0., 0., 0., 1.]])}
 
-# GRL version
-    def _constructGraph(self, seq, csr_matrix, tensorline):
         grh = dgl.DGLGraph(csr_matrix)
-        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 25))
+
+        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 4))
 
         #节点表征
         for i in range(len(seq)):
-            grh.ndata['feat'][i] = tensorline[i]
-        #csr_matrix data为64位整型需格式转换
+            grh.ndata['feat'][i] = d[seq_upper[i]]
+
         grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
         grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
-        #把距离为2的节点和该节点加一条边
+
         for i in range(len(seq)):
             for j in range(-2, 3):
                 if j == 0 or j == -1 or j == 1:
@@ -270,6 +221,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
                     continue
                 grh.add_edges(i, i + j)
                 grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
+
         return grh
 
     def __len__(self):
@@ -295,6 +247,54 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         self.graph_lists[idx], self.graph_labels[idx] = v
         self.labels[idx] = v[1].item()
         pass
+
+# GRL version
+#     def _constructGraph(self, seq, csr_matrix, tensorline):
+#         grh = dgl.DGLGraph(csr_matrix)
+#         grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 25))
+#
+#         #节点表征
+#         for i in range(len(seq)):
+#             grh.ndata['feat'][i] = tensorline[i]
+#         #csr_matrix data为64位整型需格式转换
+#         grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
+#         grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
+#         #把距离为2的节点和该节点加一条边
+#         for i in range(len(seq)):
+#             for j in range(-2, 3):
+#                 if j == 0 or j == -1 or j == 1:
+#                     continue
+#                 if i + j < 0 or i + j > len(seq) - 1:
+#                     continue
+#                 if grh.has_edges_between(i, i + j):
+#                     continue
+#                 grh.add_edges(i, i + j)
+#                 grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
+#         return grh
+#
+#     def __len__(self):
+#         """Return the number of graphs in the dataset."""
+#         return self.n_samples
+#
+#     def __getitem__(self, idx):
+#         """
+#             Get the idx^th sample.
+#             Parameters
+#             ---------
+#             idx : int
+#                 The sample index.
+#             Returns
+#             -------
+#             (dgl.DGLGraph, int)
+#                 DGLGraph with node feature stored in `feat` field
+#                 And its label.
+#         """
+#         return self.graph_lists[idx], self.graph_labels[idx]
+#
+#     def __setitem__(self, idx, v):
+#         self.graph_lists[idx], self.graph_labels[idx] = v
+#         self.labels[idx] = v[1].item()
+#         pass
 
 
 
