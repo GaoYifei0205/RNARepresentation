@@ -21,20 +21,33 @@
 import torch
 from sklearn.decomposition import PCA
 import numpy as np
-# tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/tensor.pt")
-# pca = PCA(n_components=25)
-# new_tensor_list = []
-# # var_list = []
-# for i in tensor_list:
-#     x = pca.fit_transform(i.reshape(-1, 768))
-#
-#     new_tensor_list.append(torch.tensor(x))
-#     torch.save(new_tensor_list, "/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/reduced_tensor.pt")
-#     # print(sum(pca.explained_variance_ratio_))
-#     # var_list.append(sum(pca.explained_variance_ratio_))
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/tensor.pt")
+pca = PCA(n_components=15)
+new_tensor_list = []
+var_list = []
+for i in tensor_list:
+    x = pca.fit_transform(i.reshape(-1, 768))
+
+    # new_tensor_list.append(torch.tensor(x))
+    # torch.save(new_tensor_list, "/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/reduced_tensor.pt")
+    print(sum(pca.explained_variance_ratio_))
+    var_list.append(sum(pca.explained_variance_ratio_))
+print("min:", min(var_list))
+print("average: ",np.mean(var_list))
 # print(np.shape(new_tensor_list[0]))
-tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/reduced_tensor.pt")
-print(np.shape(tensor_list[0]))
+# tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/reduced_tensor.pt")
+
+# A = torch.tensor([[1., 0., 0., 0.]])
+# print(A.shape)
+#
+# A = A.double()
+# print(A.shape)
+# print(tensor_list[0][1].shape)
+# print(tensor_list[0][1].reshape([1, -1]).shape)
+# feature = torch.cat((A, tensor_list[0][1].reshape([1, -1])), dim=1)
+# print(feature.shape)
+
+
 # print(np.mean(var_list))
 # reshaped_list = [i.reshape(-1, 768) for i in tensor_list]
 # # print(np.shape(reshaped_list[0][0]))
