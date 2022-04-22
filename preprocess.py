@@ -17,10 +17,10 @@ if DATASET_NAME in ['CAPRIN1_Baltz2012', 'PARCLIP_IGF2BP123', 'PARCLIP_MOV10_Sie
            'C22ORF28_Baltz2012', 'PARCLIP_ELAVL1A', 'PARCLIP_TAF15', 'PARCLIP_FUS', 'PARCLIP_EWSR1',
            'PARCLIP_HUR', 'PARCLIP_PUM2', 'PARCLIP_AGO1234', 'ALKBH5_Baltz2012',
            'C17ORF85_Baltz2012', 'PARCLIP_QKI', 'PARCLIP_ELAVL1', 'CLIPSEQ_SFRS1', 'CLIPSEQ_AGO2',
-           'CLIPSEQ_ELAVL1'] and debias==True:
+           'CLIPSEQ_ELAVL1'] and debias=='True':
     raise ValueError('Warning, %s is not debiased.debias should be set to False!' % (DATASET_NAME))
 
-elif DATASET_NAME in ['ICLIP_HNRNPC', 'ICLIP_TDP43', 'ICLIP_TIA1', 'ICLIP_TIAL1', 'PTBv1'] and debias==False:
+elif DATASET_NAME in ['ICLIP_HNRNPC', 'ICLIP_TDP43', 'ICLIP_TIA1', 'ICLIP_TIAL1', 'PTBv1'] and debias=='False':
     raise ValueError('Warning, %s is not biased.debias should be set to True!' % (DATASET_NAME))
 
 
