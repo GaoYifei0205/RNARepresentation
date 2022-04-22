@@ -505,7 +505,7 @@ def detect_motifs(model, data_loader, device, output_dir='motifs'):
 
 
 def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=False, **kwargs):
-    print(probabilistic)
+    print(probabilistic, type(probabilistic))
     assert (fold_algo in ['rnafold', 'rnasubopt', 'rnaplfold', 'mxfold2'])
     if fold_algo == 'rnafold' or fold_algo == 'mxfold2':
         assert (probabilistic is False)

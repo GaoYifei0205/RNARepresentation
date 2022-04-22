@@ -8,7 +8,10 @@ start = time.time()
 DATASET_NAME = sys.argv[1]
 debias = sys.argv[2]
 fold_algo = sys.argv[3]
-probabilistic = sys.argv[4]
+if sys.argv[4] == 'False':
+    probabilistic = False
+elif sys.argv[4] == 'True':
+    probabilistic = True
 
 if DATASET_NAME in ['CAPRIN1_Baltz2012', 'PARCLIP_IGF2BP123', 'PARCLIP_MOV10_Sievers', 'ZC3H7B_Baltz2012',
            'C22ORF28_Baltz2012', 'PARCLIP_ELAVL1A', 'PARCLIP_TAF15', 'PARCLIP_FUS', 'PARCLIP_EWSR1',
