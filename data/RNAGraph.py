@@ -339,7 +339,7 @@ class RNADataset(torch.utils.data.Dataset):
             print("data biased!")
             data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
-        with open(data_dir + name + fold_algo + '.pkl', "rb") as f:
+        with open(data_dir + name + fold_algo + '_25.pkl', "rb") as f:
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]

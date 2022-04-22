@@ -36,7 +36,7 @@ else:
     path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb')
 if os.path.exists(path_template) is False:
     os.mkdir(path_template)
-path_template = os.path.join(path_template, DATASET_NAME + fold_algo+'.pkl')
+path_template = os.path.join(path_template, DATASET_NAME + fold_algo+'_25.pkl')
 # if os.path.exists(path_template) is True:
 #     print(DATASET_NAME + '.pkl' + " already exists!")
 #     exit()
