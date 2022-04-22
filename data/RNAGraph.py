@@ -74,12 +74,20 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         neg_matrix = load_mat(path_template.format(dataset, split, 'negatives')
                                               , pool, load_dense=False, **kwargs)
 
-        pos_adjacency_matrix, pos_probability_matrix = pos_matrix
-        neg_adjacency_matrix, neg_probability_matrix = neg_matrix
+        if probabilistic:
+            pos_adjacency_matrix, pos_probability_matrix = pos_matrix
+            neg_adjacency_matrix, neg_probability_matrix = neg_matrix
+        else:
+            pos_probability_matrix = pos_matrix
+            neg_probability_matrix = neg_matrix
         adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
 
+        tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'reduced_tensor.pt')
+        pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
+        neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
+        tensor_list = pos_tensor + neg_tensor
         print("convert graph to dglgraph")
-        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix)
+        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
 
         # data_path = os.path.join(data_dir, dataset + '_graphs_' + split + '.pkl')
         # with open(data_path, "rb") as f:
@@ -171,27 +179,26 @@ class RNAGraphDGL(torch.utils.data.Dataset):
             # print('modified sequences have been cached')
         return pos_id, pos_seq, neg_id, neg_seq
 
-    def _convert2dglgraph(self, seq_list, csr_matrixs):
+    def _convert2dglgraph(self, seq_list, csr_matrixs, tensor_list):
         dgl_graph_list = []
         for i in tqdm(range(len(csr_matrixs))):
-            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i]))
-
+            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i], tensor_list[i]))
         return dgl_graph_list
 
-    def _constructGraph(self, seq, csr_matrix):
-        seq_upper = seq.upper()
-        d = {'A': torch.tensor([[1., 0., 0., 0.]]),
-             'G': torch.tensor([[0., 1., 0., 0.]]),
-             'C': torch.tensor([[0., 0., 1., 0.]]),
-             'U': torch.tensor([[0., 0., 0., 1.]]),
-             'T': torch.tensor([[0., 0., 0., 1.]])}
+    def _constructGraph(self, seq, csr_matrix, tensorline):
+        # seq_upper = seq.upper()
+        # d = {'A': torch.tensor([[1., 0., 0., 0.]]),
+        #      'G': torch.tensor([[0., 1., 0., 0.]]),
+        #      'C': torch.tensor([[0., 0., 1., 0.]]),
+        #      'U': torch.tensor([[0., 0., 0., 1.]]),
+        #      'T': torch.tensor([[0., 0., 0., 1.]])}
 
         grh = dgl.DGLGraph(csr_matrix)
 
-        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 4))
+        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 25))
 
         for i in range(len(seq)):
-            grh.ndata['feat'][i] = d[seq_upper[i]]
+            grh.ndata['feat'][i] = tensorline[i]
 
         grh.edata['feat'] = torch.tensor(csr_matrix.data)
         grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
@@ -270,10 +277,10 @@ class RNADataset(torch.utils.data.Dataset):
         self.name = name
         if config['debias'] == "True":
             print("data debiased!")
-            data_dir = 'data/GraphProt_CLIP_sequences/RNAGraphProb_debias/'
+            data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb_debias/'
         else:
             print("data biased!")
-            data_dir = 'data/GraphProt_CLIP_sequences/RNAGraphProb/'
+            data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
         with open(data_dir + name + '.pkl', "rb") as f:
             f = pickle.load(f)
@@ -396,11 +403,11 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         self.name = name
 
         print("processing test data")
-        self.test = RNAGraphDGL("./data/", dataset=self.name, split='ls',
+        self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='ls',
                                 fold_algo='rnaplfold', debias=debias, probabilistic=True, )
 
         print("processing train data")
-        self.train_ = RNAGraphDGL("./data/", dataset=self.name, split='train',
+        self.train_ = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='train',
                                   fold_algo='rnaplfold', debias=debias, probabilistic=True)
 
         inds = np.random.permutation(np.arange(0, int(len(self.train_))))
