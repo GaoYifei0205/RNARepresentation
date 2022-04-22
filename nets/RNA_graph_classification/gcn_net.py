@@ -168,6 +168,7 @@ class GCNNet(nn.Module):
         # cnn_node_weight.unsqueeze(1).unsqueeze(-1).shape: torch.Size([128, 1, 501, 22, 1])
         w = torch.sum(cnn_node_weight.unsqueeze(1), dim=3).unsqueeze(-1)
         hg = torch.mul(hg, w)
+        # hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
 
         hg = torch.flatten(hg, start_dim=1)  # 128 32 22
         hc = torch.flatten(h2, start_dim=1)
