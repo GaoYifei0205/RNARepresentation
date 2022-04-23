@@ -80,7 +80,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
             pos_probability_matrix = pos_matrix
             neg_probability_matrix = neg_matrix
         adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
-
+        raise RuntimeError
         tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'reduced_tensor.pt')
         pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
         neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
