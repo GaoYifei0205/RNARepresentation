@@ -33,8 +33,9 @@ import numpy as np
 #     # print(sum(pca.explained_variance_ratio_))
 #     # var_list.append(sum(pca.explained_variance_ratio_))
 # print(np.shape(new_tensor_list[0]))
-tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/reduced_tensor.pt")
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/tensor.pt")
 print(np.shape(tensor_list[0]))
+print(np.shape(tensor_list[0][0]))
 # print(np.mean(var_list))
 # reshaped_list = [i.reshape(-1, 768) for i in tensor_list]
 # # print(np.shape(reshaped_list[0][0]))

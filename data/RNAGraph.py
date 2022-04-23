@@ -81,14 +81,14 @@ class RNAGraphDGL(torch.utils.data.Dataset):
             neg_probability_matrix = neg_matrix
         adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
 
-        # tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'reduced_tensor.pt')
-        # pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
-        # neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
-        # tensor_list = pos_tensor + neg_tensor
+        tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'tensor.pt')
+        pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
+        neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
+        tensor_list = pos_tensor + neg_tensor
 # killed for C22ORF28_Baltz2012
         print("convert graph to dglgraph")
         # self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
-        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix)
+        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
         # data_path = os.path.join(data_dir, dataset + '_graphs_' + split + '.pkl')
         # with open(data_path, "rb") as f:
         #     f = pickle.load(f)
@@ -186,27 +186,27 @@ class RNAGraphDGL(torch.utils.data.Dataset):
     #         dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i]))
     #     return dgl_graph_list
 # tensor_list[i]对应每个序列的tensor
-    def _convert2dglgraph(self, seq_list, csr_matrixs):
+    def _convert2dglgraph(self, seq_list, csr_matrixs, tensor_list):
         dgl_graph_list = []
         for i in tqdm(range(len(csr_matrixs))):
-            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i]))
+            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i], tensor_list[i]))
         return dgl_graph_list
 
-    def _constructGraph(self, seq, csr_matrix):
-        seq_upper = seq.upper()
-        d = {'A': torch.tensor([[1., 0., 0., 0.]]),
-             'G': torch.tensor([[0., 1., 0., 0.]]),
-             'C': torch.tensor([[0., 0., 1., 0.]]),
-             'U': torch.tensor([[0., 0., 0., 1.]]),
-             'T': torch.tensor([[0., 0., 0., 1.]])}
+    def _constructGraph(self, seq, csr_matrix, tensorline):
+        # seq_upper = seq.upper()
+        # d = {'A': torch.tensor([[1., 0., 0., 0.]]),
+        #      'G': torch.tensor([[0., 1., 0., 0.]]),
+        #      'C': torch.tensor([[0., 0., 1., 0.]]),
+        #      'U': torch.tensor([[0., 0., 0., 1.]]),
+        #      'T': torch.tensor([[0., 0., 0., 1.]])}
 
         grh = dgl.DGLGraph(csr_matrix)
 
-        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 4))
+        grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 768))
 
         #节点表征
         for i in range(len(seq)):
-            grh.ndata['feat'][i] = d[seq_upper[i]]
+            grh.ndata['feat'][i] = tensorline[0][i]
 
         grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
         grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
@@ -339,7 +339,7 @@ class RNADataset(torch.utils.data.Dataset):
             print("data biased!")
             data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
-        with open(data_dir + name + fold_algo + '_4.pkl', "rb") as f:
+        with open(data_dir + name + fold_algo + '_768.pkl', "rb") as f:
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]
