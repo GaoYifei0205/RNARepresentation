@@ -82,12 +82,12 @@ class GCNNet(nn.Module):
 
         # # CNN start
         self.conv_readout_layer = ConvReadoutLayer(self.readout)
-        # self.layers_cnn = nn.ModuleList()
-        # self.layers_cnn.append(
-        #     ConvLayer(1, 32, conv_kernel1, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
-        # for _ in range(self.n_layers - 1):
-        #     self.layers_cnn.append(
-        #         ConvLayer(32, 32, conv_kernel2, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
+        self.layers_cnn = nn.ModuleList()
+        self.layers_cnn.append(
+            ConvLayer(1, 32, conv_kernel1, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
+        for _ in range(self.n_layers - 1):
+            self.layers_cnn.append(
+                ConvLayer(32, 32, conv_kernel2, F.leaky_relu, self.batch_norm, residual=False, padding=conv_padding))
 
         self.layers_pool = nn.ModuleList()
         for _ in range(self.n_layers):
@@ -114,10 +114,10 @@ class GCNNet(nn.Module):
         weight2gnn_list = []
         weight2cnn_list = []
 
-        # h2 = self._graph2feature(g)
-        # self.sequence = h2
-        # h2 = h2.to(self.device)
-        # h2: torch.Size([128, 1, 501, 25])
+        h2 = self._graph2feature(g)
+        self.sequence = h2
+        h2 = h2.to(self.device)
+        h2: torch.Size([128, 1, 501, 25])
 
         h1 = self.embedding_h(h)  # h1:(64128, 32)  h:(64128, 25)
         # print(h1.shape)
@@ -132,15 +132,15 @@ class GCNNet(nn.Module):
             # g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
 
             # CNN
-            # h2 = self.layers_cnn[i](h2)  # torch.Size([128, 32, 501, 22])
-            # if i == 0:
-            #     self.filter_out = h2
-            #     cnn_node_weight = torch.mean(h2, dim=1).squeeze(-1)
-            #     self.base_weight = self.batchnorm_weight(cnn_node_weight)
-            #     cnn_node_weight = torch.sigmoid(self.batchnorm_weight(cnn_node_weight))  # torch.Size([128, 501, 22])
-            #     # cnn_node_weight = cnn_node_weight.detach()
-            #
-            # h2 = self.layers_pool[i](h2)  # torch.Size([128, 32, 251, 11])
+            h2 = self.layers_cnn[i](h2)  # torch.Size([128, 32, 501, 22])
+            if i == 0:
+                self.filter_out = h2
+                cnn_node_weight = torch.mean(h2, dim=1).squeeze(-1)
+                self.base_weight = self.batchnorm_weight(cnn_node_weight)
+                cnn_node_weight = torch.sigmoid(self.batchnorm_weight(cnn_node_weight))  # torch.Size([128, 501, 22])
+                # cnn_node_weight = cnn_node_weight.detach()
+
+            h2 = self.layers_pool[i](h2)  # torch.Size([128, 32, 251, 11])
 
             # weight cross
             # print("shape", h2.shape)
@@ -168,13 +168,13 @@ class GCNNet(nn.Module):
         # cnn_node_weight.unsqueeze(1).unsqueeze(-1).shape: torch.Size([128, 1, 501, 22, 1])
         # w = torch.sum(cnn_node_weight.unsqueeze(1), dim=3).unsqueeze(-1)
         # hg = torch.mul(hg, w)
-        # hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
+        hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
 
         hg = torch.flatten(hg, start_dim=1)  # 128 32 22
-        # hc = torch.flatten(h2, start_dim=1)
+        hc = torch.flatten(h2, start_dim=1)
 
-        # h_final = torch.cat([hg, hc], dim=1)
-        h_final = hg  #(128, 24896)
+        h_final = torch.cat([hg, hc], dim=1)
+        # h_final = hg  #(128, 24896)
         pred = self.MLP_layer(h_final)
 
         return pred
