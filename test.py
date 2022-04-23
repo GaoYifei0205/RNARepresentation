@@ -82,6 +82,7 @@ from sklearn.model_selection import GridSearchCV
 # clf.predict(X_test[:5, :])
 #
 # clf.score(X_test, y_test)
+tensor_list = []
 tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/tensor.pt")
 alist = []
 ALK_ls_neg = []
@@ -90,7 +91,7 @@ for i in range(len(tensor_list)):
         alist.append(tensor_list[i][0][j].numpy())
     ALK_ls_neg.append(np.mean(alist, axis = 0))
 
-
+tensor_list = []
 tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/positives/tensor.pt")
 alist = []
 ALK_ls_pos = []
@@ -99,7 +100,7 @@ for i in range(len(tensor_list)):
         alist.append(tensor_list[i][0][j].numpy())
     ALK_ls_pos.append(np.mean(alist, axis = 0))
 
-
+tensor_list = []
 tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/train/negatives/tensor.pt")
 alist = []
 ALK_train_neg = []
@@ -108,7 +109,7 @@ for i in range(len(tensor_list)):
         alist.append(tensor_list[i][0][j].numpy())
     ALK_train_neg.append(np.mean(alist, axis = 0))
 
-
+tensor_list = []
 tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/train/positives/tensor.pt")
 alist = []
 ALK_train_pos = []
@@ -124,17 +125,25 @@ X_test = np.array(ALK_ls_pos + ALK_ls_neg)
 y_train = np.array([1 for i in range(len(ALK_train_pos))] + [0 for i in range(len(ALK_train_neg))])
 y_test = np.array([1 for i in range(len(ALK_ls_pos))] + [0 for i in range(len(ALK_ls_neg))])
 
-mlp_clf__tuned_parameters = {"hidden_layer_sizes": [(30, ),(50,), (100,)],
-                                 "max_iter": [20, 30, 50, 100],
-                                 "verbose": [True]
+mlp_clf__tuned_parameters = {"hidden_layer_sizes": [(30, )],
+                                 "max_iter": [20]
                                  }
 clf = MLPClassifier()
-estimator = GridSearchCV(clf, mlp_clf__tuned_parameters, n_jobs=6)
+estimator = GridSearchCV(clf, mlp_clf__tuned_parameters)
 estimator.fit(X_train, y_train)
+print(estimator.score(X_test, y_test))
+# print("Grid scores on development set:")
+# print()
+# means = estimator.cv_results_['mean_test_score']
+# stds = estimator.cv_results_['std_test_score']
+# for mean, std, params in zip(means, stds, estimator.cv_results_['params']):
+#     print("%0.3f (+/-%0.03f) for %r"
+#            % (mean, std * 2, params))
 
-print(estimator.get_params().keys())
-print(estimator.best_params_)
-print(estimator.best_score_)
+
+
+# print(estimator.best_params_)
+# print(estimator.best_score_)
 
 # clf.predict_proba(X_test[:1])
 #
