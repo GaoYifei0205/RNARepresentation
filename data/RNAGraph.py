@@ -255,7 +255,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         #节点表征
         for i in range(len(seq)):
-            grh.ndata['feat'][i] = tensorline[i]
+            grh.ndata['feat'][i] = tensorline[i].reshape([1, -1])
         #csr_matrix data为64位整型需格式转换
         grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
         grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
