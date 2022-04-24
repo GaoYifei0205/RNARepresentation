@@ -24,7 +24,7 @@
     },
     
     "net_params": {
-        "L": 2,
+        "L": 1,
         "hidden_dim": 32,
         "out_dim": 32,
         "residual": true,

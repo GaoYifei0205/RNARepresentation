@@ -208,19 +208,19 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         for i in range(len(seq)):
             grh.ndata['feat'][i] = tensorline[0][i]
 
-        grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
-        grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
-
-        for i in range(len(seq)):
-            for j in range(-2, 3):
-                if j == 0 or j == -1 or j == 1:
-                    continue
-                if i + j < 0 or i + j > len(seq) - 1:
-                    continue
-                if grh.has_edges_between(i, i + j):
-                    continue
-                grh.add_edges(i, i + j)
-                grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
+        # grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
+        # grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
+        #
+        # for i in range(len(seq)):
+        #     for j in range(-2, 3):
+        #         if j == 0 or j == -1 or j == 1:
+        #             continue
+        #         if i + j < 0 or i + j > len(seq) - 1:
+        #             continue
+        #         if grh.has_edges_between(i, i + j):
+        #             continue
+        #         grh.add_edges(i, i + j)
+        #         grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
 
         return grh
 
@@ -339,7 +339,7 @@ class RNADataset(torch.utils.data.Dataset):
             print("data biased!")
             data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
-        with open(data_dir + name + fold_algo + '_768.pkl', "rb") as f:
+        with open(data_dir + name + fold_algo + '_768_noedata.pkl', "rb") as f:
             f = pickle.load(f)
             self.train = f[0]
             self.val = f[1]
