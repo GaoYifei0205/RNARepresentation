@@ -36,6 +36,7 @@ class DGLFormDataset(torch.utils.data.Dataset):
 
 
 class RNAGraphDGL(torch.utils.data.Dataset):
+    __slots__ = ['split', 'debias', 'graph_lists', 'graph_labels', 'seq_list', 'label_list', 'all_id', 'n_samples']
     def __init__(self, data_dir, dataset, split, fold_algo, probabilistic, p=None, debias="False", **kwargs):
 
         self.split = split
@@ -45,7 +46,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         self.graph_labels = []
         self.seq_list = []
         self.label_list = []
-        self.id_list = []
+        # self.id_list = []
 
         if p is None:
             pool = Pool(min(int(mp.cpu_count() * 2 / 3), 12))
@@ -65,7 +66,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         self.seq_list = pos_seq + neg_seq
         self.label_list = np.array([1] * len(pos_id) + [0] * (len(neg_id)))
         self.graph_labels = torch.tensor(self.label_list)
-
+        # del pos_id, neg_id, pos_seq, neg_seq
         print("convert seq to graph")
         pos_matrix = load_mat(path_template.format(dataset, split, 'positives')
                                               , pool, fold_algo, probabilistic, load_dense=False, **kwargs)
@@ -79,12 +80,14 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         else:
             pos_probability_matrix = pos_matrix
             neg_probability_matrix = neg_matrix
+        # del pos_matrix, neg_matrix
         adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
 
         tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'tensor.pt')
         pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
         neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
         tensor_list = pos_tensor + neg_tensor
+        # del pos_tensor, neg_tensor
 # killed for C22ORF28_Baltz2012
         print("convert graph to dglgraph")
         # self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
@@ -95,6 +98,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         #     self.graph_lists = f[0]
         #     self.graph_labels = f[1]
         self.n_samples = len(self.graph_lists)
+        # del adjacency_matrix, tensor_list
         print("prepare data")
         self._prepare()
 
@@ -120,7 +124,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         pos_id, pos_seq = load_seq(path_template.format(rbp, split, 'positives'))
         neg_id, neg_seq = load_seq(path_template.format(rbp, split, 'negatives'))
-        all_id = pos_id + neg_id
+        # all_id = pos_id + neg_id
         all_seq = pos_seq + neg_seq
 
         size_pos = len(pos_id)
@@ -201,7 +205,6 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         #      'T': torch.tensor([[0., 0., 0., 1.]])}
 
         grh = dgl.DGLGraph(csr_matrix)
-
         grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 768))
 
         #节点表征
@@ -325,6 +328,7 @@ def self_loop(g: object) -> object:
 
 
 class RNADataset(torch.utils.data.Dataset):
+    __slots__ = ['name', 'train', 'val', 'test']
     def __init__(self, name, config, fold_algo, window_size=501):
         """
             Loading Superpixels datasets
@@ -473,25 +477,32 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         _val_graphs = [self.train_.graph_lists[ind] for ind in inds[:int(len(self.train_)*num_val)]]
         # _val_sequences = self._construct_sequence_features(_val_graphs, window_size)
         _val_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[:int(len(self.train_)*num_val)]])
+        self.val = DGLFormDataset(_val_graphs, _val_labels)
+        del _val_graphs, _val_labels
+
 
         print("train data shuffle")
         _train_graphs = [self.train_.graph_lists[ind] for ind in inds[int(len(self.train_)*num_val):]]
         # _train_sequences = self._construct_sequence_features(_train_graphs, window_size)
         _train_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[int(len(self.train_)*num_val):]])
+        self.train = DGLFormDataset(_train_graphs, _train_labels)
+        del _train_graphs, _train_labels
 
         print("test data shuffle")
         inds = np.random.permutation(np.arange(0, int(len(self.test))))
         _test_graphs = [self.test.graph_lists[ind] for ind in inds]
         # _test_sequences = self._construct_sequence_features(_test_graphs, window_size)
         _test_labels = torch.tensor([self.test.graph_labels[ind] for ind in inds])
+        self.test = DGLFormDataset(_test_graphs, _test_labels)
+        del _test_graphs, _test_labels
 
         # _val_graphs, _val_labels = self.train_[:int(len(self.train_)*num_val)]
         # _train_graphs, _train_labels = self.train_[int(len(self.train_)*num_val):]
 
-        print("data convert to DGLFormDataset")
-        self.train = DGLFormDataset(_train_graphs, _train_labels)
-        self.val = DGLFormDataset(_val_graphs, _val_labels)
-        self.test = DGLFormDataset(_test_graphs, _test_labels)
+        # print("data convert to DGLFormDataset")
+        # self.train = DGLFormDataset(_train_graphs, _train_labels)
+        # self.val = DGLFormDataset(_val_graphs, _val_labels)
+        # self.test = DGLFormDataset(_test_graphs, _test_labels)
 
         print("[I] Data load time: {:.4f}s".format(time.time() - t_data))
 
