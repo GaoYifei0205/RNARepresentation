@@ -128,7 +128,7 @@ class GCNNet(nn.Module):
         for i in range(self.n_layers):
             # GNN
             h1 = self.layers_gnn[2 * i](g, h1)
-            h1 = self.layers_gnn[2 * i + 1](g, h1)
+            # h1 = self.layers_gnn[2 * i + 1](g, h1)
             # g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
 
             # CNN
