@@ -97,7 +97,11 @@ def fold_seq_rnashapes(seq, winsize, iterations=100):
 
 # >>>> equilibrium probability using RNAplfold >>>>>>>
 # when on compute canada, make sure this is happening on the compute nodes
-#w:winsize, l=min(winsize,150),cutoff=1e-4, no_lonely_bps=True
+#w:winsize,Average the pair probabilities over windows of given size
+#l：span,=min(winsize,150),Set the maximum allowed separation of a base pair to span. I.e. no pairs (i,j) with
+# j-i > span will be allowed.
+# cutoff=1e-4, Report only base pairs with an average probability > cutoff in the dot plot
+# no_lonely_bps=True,Produce structures without lonely pairs (helices of length 1)
 def fold_seq_rnaplfold(seq, w, l, cutoff, no_lonely_bps):
     np.random.seed(random.seed())
     name = str(np.random.rand())
