@@ -666,7 +666,7 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
             pickle.dump(sp_prob_matrix,
                         open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
     else:
-        raise ValueError('Supported folding algorithms are ' + ', '.join(['mxfold2', 'rnafold', 'rnasubopt', 'rnaplfold']))
+        raise ValueError('Supported folding algorithms are ' + ', '.join(['mxfold2', 'rnafold', 'rnasubopt', 'rnaplfold','linearpartition']))
 
     if p is None:
         pool.close()
