@@ -151,6 +151,48 @@ def fold_seq_rnaplfold(seq, w, l, cutoff, no_lonely_bps):
             sp.csr_matrix((prob, (np.array(row_col)[:, 0], np.array(row_col)[:, 1])), shape=(length, length)),)
 
 
+# >>>> equilibrium probability using LinearPartition >>>>>>>
+def fold_seq_linearpartition(seq, cutoff):
+    np.random.seed(random.seed())
+    name = str(np.random.rand())
+    cmd = 'echo %s | ./linearpartition -c %.4f --prefix %s' % (seq, cutoff, name)
+    ret = subprocess.call(cmd, shell=True)
+
+    # assemble adjacency matrix
+    row_col, link, prob = [], [], []
+    length = len(seq)
+    for i in range(length):
+        if i != length - 1:
+            row_col.append((i, i + 1))
+            link.append(1)
+            prob.append(1.)
+        if i != 0:
+            row_col.append((i, i - 1))
+            link.append(2)
+            prob.append(1.)
+    # Extract base pair information.
+    name += '_0001_dp.ps'
+    with open(name) as f:
+        for line in f:
+            values = line.split()
+            if len(values) == 3:
+                source_id = int(values[0]) - 1
+                dest_id = int(values[1]) - 1
+                avg_prob = float(values[2])
+                # source_id < dest_id
+                row_col.append((source_id, dest_id))
+                link.append(3)
+                prob.append(avg_prob ** 2)
+                row_col.append((dest_id, source_id))
+                link.append(4)
+                prob.append(avg_prob ** 2)
+    # delete RNAplfold output file.
+    os.remove(name)
+    # placeholder for dot-bracket structure
+    return (sp.csr_matrix((link, (np.array(row_col)[:, 0], np.array(row_col)[:, 1])), shape=(length, length)),
+            sp.csr_matrix((prob, (np.array(row_col)[:, 0], np.array(row_col)[:, 1])), shape=(length, length)),)
+
+
 # >>>> Boltzmann sampling using RNAsubopt >>>>>>>
 
 def sample_one_seq(seq, passes=10):
@@ -510,10 +552,10 @@ def detect_motifs(model, data_loader, device, output_dir='motifs'):
 
 def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=False, **kwargs):
     print(probabilistic, type(probabilistic))
-    assert (fold_algo in ['rnafold', 'rnasubopt', 'rnaplfold', 'mxfold2'])
+    assert (fold_algo in ['rnafold', 'rnasubopt', 'rnaplfold', 'mxfold2','linearpartition'])
     if fold_algo == 'rnafold' or fold_algo == 'mxfold2':
         assert (probabilistic is False)
-    if fold_algo == 'rnaplfold':
+    if fold_algo == 'rnaplfold' or fold_algo == 'linearpartition':
         assert (probabilistic is True)
     print('Parsing', filepath)
 
@@ -582,6 +624,26 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
         pickle.dump(sp_rel_matrix,
                     open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
         if probabilistic:
+            pickle.dump(sp_prob_matrix,
+                        open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
+
+    elif fold_algo == 'linearpartition':
+        a = os.path.exists(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)))
+        b = os.path.exists(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)))
+        if a and b:
+            print("already preprocessed!")
+        else:
+            winsize = kwargs.get('w', 150)
+            print('running linearpartition')
+            fold_func = partial(fold_seq_linearpartition, cutoff=1e-4)
+            res = list(pool.imap(fold_func, all_seq))
+            sp_rel_matrix = []
+            sp_prob_matrix = []
+            for rel_mat, prob_mat in res:
+                sp_rel_matrix.append(rel_mat)
+                sp_prob_matrix.append(prob_mat)
+            pickle.dump(sp_rel_matrix,
+                        open(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)), 'wb'))
             pickle.dump(sp_prob_matrix,
                         open(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)), 'wb'))
     elif fold_algo == 'rnaplfold':
