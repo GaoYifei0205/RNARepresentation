@@ -155,10 +155,11 @@ def fold_seq_rnaplfold(seq, w, l, cutoff, no_lonely_bps):
 def fold_seq_linearpartition(seq, cutoff):
     np.random.seed(random.seed())
     name = str(np.random.rand())
-    cmd = 'echo %s | ./linearpartition -c %.4f --prefix %s' % (seq, cutoff, name)
-    ret = subprocess.call(cmd, shell=True)
-
+    cmd = 'echo %s | /data/gaoyifei/LinearPartition-master/linearpartition -c %.4f --prefix %s' % (seq, cutoff, name)
+    ret = subprocess.Popen(cmd, shell=True)
+    ret.wait()
     # assemble adjacency matrix
+    print(ret)
     row_col, link, prob = [], [], []
     length = len(seq)
     for i in range(length):
@@ -171,7 +172,7 @@ def fold_seq_linearpartition(seq, cutoff):
             link.append(2)
             prob.append(1.)
     # Extract base pair information.
-    name += '_0001_dp.ps'
+    name += '_1'
     with open(name) as f:
         for line in f:
             values = line.split()
@@ -186,7 +187,7 @@ def fold_seq_linearpartition(seq, cutoff):
                 row_col.append((dest_id, source_id))
                 link.append(4)
                 prob.append(avg_prob ** 2)
-    # delete RNAplfold output file.
+    # delete output file.
     os.remove(name)
     # placeholder for dot-bracket structure
     return (sp.csr_matrix((link, (np.array(row_col)[:, 0], np.array(row_col)[:, 1])), shape=(length, length)),
