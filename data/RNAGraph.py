@@ -473,20 +473,34 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
 
         inds = np.random.permutation(np.arange(0, int(len(self.train_))))
 
+        basedir = '/data/gaoyifei'
+        if debias == 'True':
+            path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb_debias')
+        else:
+            path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb')
+        if os.path.exists(path_template) is False:
+            os.mkdir(path_template)
+        path_template = os.path.join(path_template, name + fold_algo + '_768_noedata.pkl')
+
+        print("train data shuffle")
+        _train_graphs = [self.train_.graph_lists[ind] for ind in inds[int(len(self.train_) * num_val):]]
+        # _train_sequences = self._construct_sequence_features(_train_graphs, window_size)
+        _train_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[int(len(self.train_) * num_val):]])
+        self.train = DGLFormDataset(_train_graphs, _train_labels)
+        with open(path_template, 'wb') as f:
+            pickle.dump([self.train], f)
+        print('length of train dataset: ', len(self.train))
+        print('first element in train dataset: ', self.train[0])
+
         print("val data shuffle")
         _val_graphs = [self.train_.graph_lists[ind] for ind in inds[:int(len(self.train_)*num_val)]]
         # _val_sequences = self._construct_sequence_features(_val_graphs, window_size)
         _val_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[:int(len(self.train_)*num_val)]])
         self.val = DGLFormDataset(_val_graphs, _val_labels)
-        del _val_graphs, _val_labels
-
-
-        print("train data shuffle")
-        _train_graphs = [self.train_.graph_lists[ind] for ind in inds[int(len(self.train_)*num_val):]]
-        # _train_sequences = self._construct_sequence_features(_train_graphs, window_size)
-        _train_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[int(len(self.train_)*num_val):]])
-        self.train = DGLFormDataset(_train_graphs, _train_labels)
-        del _train_graphs, _train_labels
+        with open(path_template, 'wb') as f:
+            pickle.dump([self.val], f)
+        print('length of val dataset: ', len(self.val))
+        print('first element in val dataset: ', self.val[0])
 
         print("test data shuffle")
         inds = np.random.permutation(np.arange(0, int(len(self.test))))
@@ -494,8 +508,10 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         # _test_sequences = self._construct_sequence_features(_test_graphs, window_size)
         _test_labels = torch.tensor([self.test.graph_labels[ind] for ind in inds])
         self.test = DGLFormDataset(_test_graphs, _test_labels)
-        del _test_graphs, _test_labels
-
+        with open(path_template, 'wb') as f:
+            pickle.dump([self.test], f)
+        print('length of test dataset: ', len(self.test))
+        print('first element in test dataset: ', self.test[0])
         # _val_graphs, _val_labels = self.train_[:int(len(self.train_)*num_val)]
         # _train_graphs, _train_labels = self.train_[int(len(self.train_)*num_val):]
 

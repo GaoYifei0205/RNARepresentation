@@ -47,17 +47,17 @@ dataset = RNAGraphDatasetDGL(DATASET_NAME, fold_algo, probabilistic, debias=debi
 
 print('Time (sec):', time.time() - start)  # 356s=6min
 
-print('length of train dataset: ', len(dataset.train))
-print('length of validation dataset: ', len(dataset.val))
-print('length of test dataset: ', len(dataset.test))
+# print('length of train dataset: ', len(dataset.train))
+# print('length of validation dataset: ', len(dataset.val))
+# print('length of test dataset: ', len(dataset.test))
 
-print('first element in train dataset: ', dataset.train[0])
-print('first element in validation dataset: ', dataset.val[0])
-print('first element in test dataset: ', dataset.test[0])
+# print('first element in train dataset: ', dataset.train[0])
+# print('first element in validation dataset: ', dataset.val[0])
+# print('first element in test dataset: ', dataset.test[0])
 
 start = time.time()
 
-with open(path_template, 'wb') as f:
-    pickle.dump([dataset.train, dataset.val, dataset.test], f)
-
+# with open(path_template, 'wb') as f:
+#     pickle.dump([dataset.train, dataset.val, dataset.test], f)
+# print("Path is " + path_template)
 print('Time (sec):', time.time() - start)  # 38s
