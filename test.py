@@ -45,6 +45,122 @@ import numpy as np
 # string = 'attgctattaaagctttactgtggagggtggagtttcaagagtgttaagcatggtgactgtttctgtctttgccattgggtgctaagaatgattgactaaaccaagcaggaaagatttctttgctttcccaatactttgcaaatcttgttATACTAACTAGTCTGCTGTTATACtcttatcatctcttactcctctgactcagaatattctactgtatagggtgaatacttttggtatccaccctccccctccatactggaaagtactttcagggtacttagttcattttacaaatacaaaactgaggcctggattacaaaaag'
 # new_string = string.upper()
 # print(new_string)
-import numpy as np
+# import numpy as np
+#
+# a = np.load('/home/gaoyifei/RNASSR-Net-main/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/ALKBH5_Baltz2012.train.neg_380.npy')
+#
+# from sklearn.neural_network import MLPClassifier
+# from sklearn.datasets import make_classification
+# from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import GridSearchCV
+# # X, y = make_classification(n_samples=100, random_state=1)
+# # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y,
+# #                                                     random_state=1)
+# # clf = MLPClassifier(random_state=1, max_iter=300).fit(X_train, y_train)
+# # clf.predict_proba(X_test[:1])
+# #
+# # clf.predict(X_test[:5, :])
+# #
+# # clf.score(X_test, y_test)
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/tensor.pt")
+alist = []
+ALK_ls_neg = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    ALK_ls_neg.append(np.mean(alist, axis = 0))
 
-a = np.load('/home/gaoyifei/RNASSR-Net-main/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/ALKBH5_Baltz2012.train.neg_380.npy')
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/positives/tensor.pt")
+alist = []
+ALK_ls_pos = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    ALK_ls_pos.append(np.mean(alist, axis = 0))
+
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/train/negatives/tensor.pt")
+alist = []
+ALK_train_neg = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    ALK_train_neg.append(np.mean(alist, axis = 0))
+
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/train/positives/tensor.pt")
+alist = []
+ALK_train_pos = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    ALK_train_pos.append(np.mean(alist, axis = 0))
+
+
+X_train = np.array(ALK_train_pos + ALK_train_neg)
+X_test = np.array(ALK_ls_pos + ALK_ls_neg)
+
+y_train = np.array([1 for i in range(len(ALK_train_pos))] + [0 for i in range(len(ALK_train_neg))])
+y_test = np.array([1 for i in range(len(ALK_ls_pos))] + [0 for i in range(len(ALK_ls_neg))])
+
+# mlp_clf__tuned_parameters = {"hidden_layer_sizes": [(30, )],
+#                                  "max_iter": [20]
+#                                  }
+# clf = MLPClassifier()
+# estimator = GridSearchCV(clf, mlp_clf__tuned_parameters)
+# estimator.fit(X_train, y_train)
+# print(estimator.score(X_test, y_test))
+
+import tensorflow
+import numpy as np
+import tensorflow.keras
+from tensorflow.keras import regularizers
+from tensorflow.keras.models import Model, Sequential # basic class for specifying and training a neural network
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Dense, Dropout, Activation, Flatten
+from tensorflow.keras.callbacks import EarlyStopping
+callback = EarlyStopping(monitor='val_loss', patience=3)
+
+batch_size = 32
+num_epochs = 15    # we iterate 15 times over the entire training set
+kernel_size = 5    # we will use 5x5 kernels throughout
+pool_size = 2      # we will use 2x2 pooling throughout
+conv_depth_1 = 6   # we will initially have 6 kernels in first conv. layer...
+conv_depth_2 = 16  # ...switching to 16 after the first pooling layer
+drop_prob_1 = 0.   # dropout after pooling with probability 0.
+drop_prob_2 = 0.   # dropout in the FC layer with probability 0.
+hidden_size = 128  # the FC layer will have 128neurons
+weight_penalty = 0. # Factor for weights penalty
+num_classes = 2
+
+model = Sequential()
+
+
+print(model.summary())
+
+# Loss function and Optimizer
+
+model.compile(loss='categorical_crossentropy', # using the cross-entropy loss function
+              optimizer='adam', # using the Adam optimiser
+              metrics=['accuracy']) # reporting the accuracy
+# Training
+history = model.fit(X_train, y_train, # Train the model using the training set...
+          batch_size=batch_size, epochs=num_epochs, callbacks=[callback],
+          verbose=1, validation_split=0.4) # ...holding out 40% of the data for validation
+# Evaluation
+for loss_name, loss_value in list(zip(model.metrics_names, model.evaluate(X_test, y_test, verbose=1))):
+    print('The final {} on the TEST set is: {:.2f}.'.format(loss_name, loss_value)) # Evaluate the trained model on the test set!
+
+
+
+
+
+
+
+
+
+
+
+
+
