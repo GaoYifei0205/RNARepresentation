@@ -1,236 +1,137 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-import torchvision.datasets
+
 import numpy as np
 
-# PART 1：加载数据，设置超参
 
-#超参设置
-num_epochs = 5
+# from sklearn.neural_network import MLPClassifier
+# from sklearn.datasets import make_classification
+# from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import GridSearchCV
+# # X, y = make_classification(n_samples=100, random_state=1)
+# # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y,
+# #                                                     random_state=1)
+# # clf = MLPClassifier(random_state=1, max_iter=300).fit(X_train, y_train)
+# # clf.predict_proba(X_test[:1])
+# #
+# # clf.predict(X_test[:5, :])
+# #
+# # clf.score(X_test, y_test)
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/C17ORF85_Baltz2012/ls/negatives/tensor.pt")
+alist = []
+C17ORF85_ls_neg = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    C17ORF85_ls_neg.append(np.mean(alist, axis = 0))
+
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/C17ORF85_Baltz2012/ls/positives/tensor.pt")
+alist = []
+C17ORF85_ls_pos = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    C17ORF85_ls_pos.append(np.mean(alist, axis = 0))
+
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/C17ORF85_Baltz2012/train/negatives/tensor.pt")
+alist = []
+C17ORF85_train_neg = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    C17ORF85_train_neg.append(np.mean(alist, axis = 0))
+
+tensor_list = []
+tensor_list = torch.load("/data/gaoyifei/data/GraphProt_CLIP_sequences/C17ORF85_Baltz2012/train/positives/tensor.pt")
+alist = []
+C17ORF85_train_pos = []
+for i in range(len(tensor_list)):
+    for j in range(len(tensor_list[i])):
+        alist.append(tensor_list[i][0][j].numpy())
+    C17ORF85_train_pos.append(np.mean(alist, axis = 0))
+
+
+X_train = np.array(C17ORF85_train_pos + C17ORF85_train_neg)
+# X_train = X_train.reshape([-1, 768, 1])
+X_test = np.array(C17ORF85_ls_pos + C17ORF85_ls_neg)
+# X_test = X_test.reshape([-1, 768, 1])
+
+y_train = np.array([1 for i in range(len(C17ORF85_train_pos))] + [0 for i in range(len(C17ORF85_train_neg))])
+y_test = np.array([1 for i in range(len(C17ORF85_ls_pos))] + [0 for i in range(len(C17ORF85_ls_neg))])
+
+
+
+import tensorflow
+import numpy as np
+import tensorflow.keras
+from tensorflow.keras import regularizers
+from tensorflow.keras.models import Model, Sequential # basic class for specifying and training a neural network
+from tensorflow.keras.layers import Input, Conv1D, MaxPooling1D, Dense, Dropout, Activation, Flatten
+from tensorflow.keras.callbacks import EarlyStopping
+
+callback = EarlyStopping(monitor='val_loss', patience=3)
+
+batch_size = 16
+num_epochs = 5    # we iterate 15 times over the entire training set
+# kernel_size = 5    # we will use 5x5 kernels throughout
+# pool_size = 2      # we will use 2x2 pooling throughout
+# conv_depth_1 = 6   # we will initially have 6 kernels in first conv. layer...
+# conv_depth_2 = 16  # ...switching to 16 after the first pooling layer
+# drop_prob_1 = 0.   # dropout after pooling with probability 0.
+# drop_prob_2 = 0.   # dropout in the FC layer with probability 0.
+# hidden_size = 128  # the FC layer will have 128neurons
+# weight_penalty = 0. # Factor for weights penalty
 num_classes = 2
-batch_size = 64
-learning_rate = 0.001
 
-#pytorch 将会下载MNIST数据保存到DATA_PATH
-#也会将训练好的模型保存到MODEL_STORE_PATH
-DATA_PATH = "/data/gaoyifei/data/GraphProt_CLIP_sequences"
-MODEL_STORE_PATH = "/data/gaoyifei/CNNmodel"
+model = Sequential([
+    # Conv1D(600, 3, activation='relu'),
+    # MaxPooling1D(),
+    # Conv1D(300, 5, activation='relu'),
+    # MaxPooling1D(),
+    Conv1D(10, 5, padding = 'same', activation='relu'),
+    MaxPooling1D(),
+    Flatten(),
+    # Dense(30, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+#沿着RNA方向滑动。滑动窗口得到的窗口长度还是501.要两边padding一下，确保滑动之后还是501维。
+# print(model.summary())
 
-# transforms to apply to the data
-# transforms.Compose函数来自于torchvision包
-# 用Compose可以将各种transforms有序组合到一个list中
-# 首先指定一个转换transforms.ToTensor()，将数据转换为pytorch tensor
-# pytorch tensor是pytorch中特殊的数据类型，用于网络中数据和权重的操作，本质上是多维矩阵
-# 接下来用transforms.Normalize对数据进行归一化，参数为数据的平均数和标准差
-# MNIST数据是单通道的，多通道就需要提供每个通道的均值和方差
-trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-# MNIST dataset，这里创建了train_dataset和test_dataset对象
-# root：train.pt和test.pt数据文件位置；train：指定获取train.pt或者test.pt数据
-# tranform：对创建的数据进行操作transform操作；download：从线上下载MNIST数据
-train_dataset = torchvision.datasets.MNIST(root=DATA_PATH, train=True, transform=trans, download=True)
-test_dataset = torchvision.datasets.MNIST(root=DATA_PATH, train=False, transform=trans)
-
-# pytorch中的DataLoader对象，可以对数据洗牌，批处理数据，多处理来并行加载数据
-train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
-
-# PART 2：创建CNN类
-
-# 神经网络的结构：
-# 输入图片为 28*28 单通道
-# 第一次卷积：32 channels of 5 x 5 convolutional filters，a ReLU activation
-# followed by 2 x 2 max pooling(stride = 2，this gives a 14 x 14 output)
-# 第二次卷积：64 channels of 5 x 5 convolutional filters
-# 2 x 2 max pooling (stride = 2，produce a 7 x 7 output)
-# 展开需要节点：7 x 7 x 64 = 3164 个，接上全连接层（含1000个节点）
-# 最后对10个输出节点进行softmax操作，产生分类概率
-
-class ConvNet(nn.Module):
-    # 初始化定义网络的结构：也就是定义网络的层
-    def __init__(self):
-        super(ConvNet,self).__init__()
-
-        # Sequential方法使我们有序的创建网络层
-        # Conv2d nn.Module的方法，该方法创建一组卷积滤波器，
-        # 第一个参数为输入的channel数，第二个参数为输出的channel数
-        # kernel_size：卷积滤波器的尺寸，这里卷积滤波器为5*5，所以参数设置为5
-        # 如果卷积滤波器为 x*y，参数就是一个元组(x,y)
-        self.layer1 = nn.Sequential(
-            # 卷积操作&池化操作的维度变化公式: width_of_output = (width_of_input - filter_size + 2*padding)/stride + 1
-            # 卷积操作时维度变化：28-5+2*2+1 =28，我希望卷积的输出和输出维度一样，所以加了2 padding
-            nn.Conv2d(1,32,kernel_size=5,stride=1,padding=2),
-            # 激活函数
-            nn.ReLU(),
-            # kernel_size：pooling size，stride：down-sample
-            nn.MaxPool2d(kernel_size=2,stride=2))
-
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(32,64,kernel_size=5,stride=1,padding=2),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2,stride=2))
-
-        self.drop_out = nn.Dropout()
-        # 后面两个全连接层，分别有1000个节点，10个节点对应10种类别
-        # 接全连接层的意义是：将神经网络输出的丰富信息加到标准分类器中
-        self.fc1 = nn.Linear(7*7*64,1000)
-        self.fc2 = nn.Linear(1000,10)
-
-    # 定义网络的前向传播,该函数会覆盖 nn.Module 里的forward函数
-    # 输入x,经过网络的层层结构，输出为out
-    def forward(self,x):
-        out = self.layer1(x)
-        out = self.layer2(out)
-        # flattens the data dimensions from 7 x 7 x 64 into 3164 x 1
-        # 左行右列，-1在哪边哪边固定只有一列
-        out = out.reshape(out.size(0),-1)
-        # 以一定概率丢掉一些神经单元，防止过拟合
-        out = self.drop_out(out)
-        out = self.fc1(out)
-        out = self.fc2(out)
-        return out
-
-# PART 3：创建一个CNN实例
-model = ConvNet()
-# 该函数包含了 SoftMax activation 和 cross entorpy，所以在神经网络结构定义的时候不需要定义softmax activation
-criterion = nn.CrossEntropyLoss()
-# 第一个参数:我们想要训练的参数。
-# 在nn.Module类中，方法 nn.parameters()可以让pytorch追踪所有CNN中需要训练的模型参数，让他知道要优化的参数是哪些
-optimizer = optim.Adam(model.parameters(),lr = learning_rate)
-
-# PART 4：训练模型
-
-#训练数据集长度
-total_step = len(train_loader)
-loss_list = []
-acc_list = []
-for epoch in range(num_epochs):
-    # 遍历训练数据(images,label)
-    for i,(images,labels) in enumerate(train_loader):
-        # 向网络中输入images，得到output,在这一步的时候模型会自动调用model.forward(images)函数
-        outputs = model(images)
-        # 计算这损失
-        loss = criterion(outputs,labels)
-        loss_list.append(loss.item())
-
-        # 反向传播，Adam优化训练
-        # 先清空所有参数的梯度缓存，否则会在上面累加
-        optimizer.zero_grad()
-        # 计算反向传播
-        loss.backward()
-        # 更新梯度
-        optimizer.step()
-
-        # 记录精度
-        total = labels.size(0)
-        # torch.max(x,1) 按行取最大值
-        # output每一行的最大值存在_中，每一行最大值的索引存在predicted中
-        # output的每一行的每个元素的值表示是这一类的概率，取最大概率所对应的类作为分类结果
-        # 也就是找到最大概率的索引
-        _,predicted = torch.max(outputs.data,1)
-        # .sum()计算出predicted和label相同的元素有多少个，返回的是一个张量，.item()得到这个张量的数值(int型)
-        correct = (predicted == labels).sum().item()
-        acc_list.append(correct/total)
-
-        if (i+1) % 100 == 0:
-            print('Epoch[{}/{}],Step[{},{}],Loss:{:.4f},Accuracy:{:.2f}%'
-            .format(epoch+1,num_epochs,i+1,total_step,loss.item(),(correct/total)*100))
-
-# PART 5：测试模型
-
-#将模型设为评估模式，在模型中禁用dropout或者batch normalization层
-model.eval()
-# 在模型中禁用autograd功能，加快计算
-with torch.no_grad():
-    correct = 0
-    total = 0
-    for images,labels in test_loader:
-        outputs = model(images)
-        _,predicted = torch.max(outputs.data,1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-    print('Test Accuracy of the model on the 1w test images:{} %'.format((correct / total) * 100))
-
-# save the model
-torch.save(model.state_dict(),MODEL_STORE_PATH + 'conv_net_model.ckpt')
+# Loss function and Optimizer
+print(y_train)
+model.compile(loss='categorical_crossentropy', # using the cross-entropy loss function
+              optimizer='adam', # using the Adam optimiser
+              metrics=['accuracy']) # reporting the accuracy
+# Training
+history = model.fit(X_train, y_train, # Train the model using the training set...
+          batch_size=batch_size, epochs=num_epochs, callbacks=[callback],
+          verbose=1, validation_split=0.2) # ...holding out 40% of the data for validation
+# Evaluation
+for loss_name, loss_value in list(zip(model.metrics_names, model.evaluate(X_test, y_test, verbose=1))):
+    print('The final {} on the TEST set is: {:.2f}.'.format(loss_name, loss_value)) # Evaluate the trained model on the test set!
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-# LDA降维
-# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-# import gzip
-# import os
-# import torch
-# import numpy as np
+# a = np.load('/home/gaoyifei/RNASSR-Net-main/data/GraphProt_CLIP_sequences/ALKBH5_Baltz2012/ls/negatives/ALKBH5_Baltz2012.train.neg_380.npy')
 #
-# def load_seq(filepath):
-#     if filepath.endswith('.fa'):
-#         file = open(filepath, 'r')
-#     else:
-#         file = gzip.open(filepath, 'rb')
+# from sklearn.neural_network import MLPClassifier
+# from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import GridSearchCV
 #
-#     all_id, all_seq = load_fasta_format(file)
-#     for i in range(len(all_seq)):
-#         seq = all_seq[i]
-#         # seq = seq[:-1].upper()
-#         all_seq[i] = seq.replace('T', 'U')
-#         all_seq[i] = all_seq[i].replace('t', 'u')
-#     return all_id, all_seq
+# clf = MLPClassifier(random_state=1, max_iter=300).fit(X_train, y_train)
+# print(clf.predict_proba(X_test[:1]))
 #
+# print(clf.predict(X_test[:5, :]))
 #
-# def load_fasta_format(file):
-#     all_id = []
-#     all_seq = []
-#     seq = ''
-#     for row in file:
-#         if type(row) is bytes:
-#             row = row.decode('utf-8')
-#         row = row.rstrip()
-#         if row.startswith('>'):
-#             all_id.append(row)
-#             if seq != '':
-#                 all_seq.append(seq)
-#                 seq = ''
-#         else:
-#             seq += row
-#     all_seq.append(seq)
-#     return all_id, all_seq
-#
-# base_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences'
-# rbp = 'ALKBH5_Baltz2012'
-# pos_path = os.path.join(base_dir, rbp, 'ls', 'positives', 'tensor.pt')
-# neg_path = os.path.join(base_dir, rbp, 'ls', 'negatives', 'tensor.pt')
-# lda = LinearDiscriminantAnalysis(n_components=25)
-# pos_tensor_list = torch.load(pos_path)
-# pos_length = []
-# for tensor in pos_tensor_list:
-#     pos_length.append(tensor.shape[1])
-# pos_cat = torch.cat([pos_tensor_list[i].squeeze(0) for i in range(len(pos_tensor_list))], 0)
-#
-# neg_tensor_list = torch.load(neg_path)
-# neg_length = []
-# for tensor in neg_tensor_list:
-#     neg_length.append(tensor.shape[1])
-# neg_cat = torch.cat([neg_tensor_list[i].squeeze(0) for i in range(len(neg_tensor_list))], 0)
-#
-# tensor_list = torch.cat([pos_cat,neg_cat],0)
-#
-# label_list = np.array([1] * len(pos_cat) + [0] * (len(neg_cat)))
-# X = tensor_list
-# y = label_list
-# lda.fit(X,y)
-# X_new = lda.transform(X)
+# print(clf.score(X_test, y_test))
+
+
+
+
+
+
+
+
+
+

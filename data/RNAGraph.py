@@ -6,7 +6,7 @@ import multiprocessing as mp
 import itertools
 import utils
 from utils.general_utils import Pool
-from utils.rna_utils import load_mat, load_seq
+from utils.rna_utils import load_mat, load_seq, read_csv
 
 import dgl
 import torch
@@ -55,16 +55,17 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         # nucleotide_label = kwargs.get('nucleotide_label', False)
         print("read data")
-        path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'data.fa')
-        if self.debias == 'True':
-            pos_id, pos_seq, neg_id, neg_seq = self.data_debias(data_dir, dataset, split)
-        else:
-            pos_id, pos_seq = load_seq(path_template.format(dataset, split, 'positives'))
-            neg_id, neg_seq = load_seq(path_template.format(dataset, split, 'negatives'))
+        path_template = os.path.join(data_dir, 'PrismNetData', dataset+'.tsv')
+        # if self.debias == 'True':
+            # pos_id, pos_seq, neg_id, neg_seq = self.data_debias(data_dir, dataset, split)
+        # else:
+        locations, sequences, structs, targets, labels = read_csv(path_template)
+        # pos_id, pos_seq = load_seq(path_template.format(dataset, split, 'positives'))
+        # neg_id, neg_seq = load_seq(path_template.format(dataset, split, 'negatives'))
 
-        self.all_id = pos_id + neg_id
-        self.seq_list = pos_seq + neg_seq
-        self.label_list = np.array([1] * len(pos_id) + [0] * (len(neg_id)))
+        self.all_id = locations
+        self.seq_list = sequences
+        self.label_list = labels
         self.graph_labels = torch.tensor(self.label_list)
         # del pos_id, neg_id, pos_seq, neg_seq
         print("convert seq to graph")

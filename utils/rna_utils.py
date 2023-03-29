@@ -13,6 +13,7 @@ import numpy as np
 import scipy.sparse as sp
 from functools import partial
 import forgi.graph.bulge_graph as fgb
+import pandas as pd
 
 basedir = os.path.split(os.path.dirname(os.path.abspath(__file__)))[0]
 sys.path.append(basedir)
@@ -480,6 +481,25 @@ def load_seq(filepath):
         all_seq[i] = all_seq[i].replace('t', 'u')
     return all_id, all_seq
 
+def read_csv(path):
+    df = pd.read_csv(path, sep='\t', header=None)
+    df = df.loc[df[0]!="Type"]
+
+    Type  = 0
+    loc   = 1
+    Seq   = 2
+    Str   = 3
+    Score = 4
+    label = 5
+
+    # rnac_set  = df[Type].to_numpy()
+    locations = df[loc].to_numpy()
+    sequences = df[Seq].to_numpy()
+    structs  = df[Str].to_numpy()
+    targets   = df[Score].to_numpy().astype(np.float32).reshape(-1,1)
+    labels = df[label].to_numpy()
+    return locations, sequences, structs, targets, labels
+
 
 def matrix2seq(one_hot_matrices):
     d = {'A': torch.tensor([[1., 0., 0., 0.]]),
@@ -560,7 +580,9 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
         assert (probabilistic is True)
     print('Parsing', filepath)
 
-    _, all_seq = load_seq(filepath)
+    locations, sequences, structs, targets, labels = read_csv(filepath)
+    all_seq = sequences
+    # _, all_seq = load_seq(filepath)
 
     # compatible with already computed structures with RNAfold
     prefix = '%s_%s_' % (fold_algo, probabilistic)

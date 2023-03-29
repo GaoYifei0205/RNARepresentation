@@ -31,9 +31,9 @@ print(os.getcwd())
 # basedir = os.getcwd()
 basedir = '/data/gaoyifei'
 if debias == 'True':
-    path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb_debias')
+    path_template = os.path.join(basedir, 'data', 'PrismNetData')
 else:
-    path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb')
+    path_template = os.path.join(basedir, 'data', 'PrismNetData')
 if os.path.exists(path_template) is False:
     os.mkdir(path_template)
 path_template = os.path.join(path_template, DATASET_NAME + fold_algo+'_768_noedata.pkl')
