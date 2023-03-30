@@ -55,7 +55,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         # nucleotide_label = kwargs.get('nucleotide_label', False)
         print("read data")
-        path_template = os.path.join(data_dir, 'PrismNetData', dataset+'.tsv')
+        path_template = os.path.join(data_dir, 'PrismNetData', dataset, dataset+'.tsv')
         # if self.debias == 'True':
             # pos_id, pos_seq, neg_id, neg_seq = self.data_debias(data_dir, dataset, split)
         # else:
@@ -69,25 +69,23 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         self.graph_labels = torch.tensor(self.label_list)
         # del pos_id, neg_id, pos_seq, neg_seq
         print("convert seq to graph")
-        pos_matrix = load_mat(path_template.format(dataset, split, 'positives')
+        all_matrix = load_mat(path_template.format(dataset)
                                               , pool, fold_algo, probabilistic, load_dense=False, **kwargs)
 
-        neg_matrix = load_mat(path_template.format(dataset, split, 'negatives')
-                                              , pool, fold_algo, probabilistic, load_dense=False, **kwargs)
 
         if probabilistic:
-            pos_adjacency_matrix, pos_probability_matrix = pos_matrix
-            neg_adjacency_matrix, neg_probability_matrix = neg_matrix
-        else:
-            pos_probability_matrix = pos_matrix
-            neg_probability_matrix = neg_matrix
-        # del pos_matrix, neg_matrix
-        adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
+            adjacency_matrix, probability_matrix = all_matrix
 
-        tensor_path_template = os.path.join(data_dir, 'GraphProt_CLIP_sequences', '{}', '{}', '{}', 'tensor.pt')
-        pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
-        neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
-        tensor_list = pos_tensor + neg_tensor
+        else:
+            probability_matrix = all_matrix
+
+        # del pos_matrix, neg_matrix
+        # adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
+
+        tensor_path_template = os.path.join(data_dir, 'PrismNetData', dataset, 'tensor.pt')
+        # pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
+        # neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
+        tensor_list = torch.load(tensor_path_template.format(dataset))
         # del pos_tensor, neg_tensor
 # killed for C22ORF28_Baltz2012
         print("convert graph to dglgraph")
