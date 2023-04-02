@@ -55,7 +55,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
 
         # nucleotide_label = kwargs.get('nucleotide_label', False)
         print("read data")
-        path_template = os.path.join(data_dir, 'PrismNetData', dataset, dataset+'.tsv')
+        path_template = os.path.join(data_dir, 'PrismNetData', dataset, split, dataset+'.tsv')
         # if self.debias == 'True':
             # pos_id, pos_seq, neg_id, neg_seq = self.data_debias(data_dir, dataset, split)
         # else:
@@ -82,7 +82,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         # del pos_matrix, neg_matrix
         # adjacency_matrix = np.concatenate([pos_probability_matrix, neg_probability_matrix], axis=0)
 
-        tensor_path_template = os.path.join(data_dir, 'PrismNetData', dataset, 'tensor.pt')
+        tensor_path_template = os.path.join(data_dir, 'PrismNetData', dataset, split, 'tensor.pt')
         # pos_tensor = torch.load(tensor_path_template.format(dataset, split, 'positives'))
         # neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
         tensor_list = torch.load(tensor_path_template.format(dataset))

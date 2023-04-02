@@ -3,7 +3,7 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="3c788488-fda4-4818-b421-81eb5da47930" name="RNASSR">
-        <fileTransfer rootFolder="/home/gaoyifei" accessType="SFTP" sshConfigId="faec8f79-e034-4678-9e0b-f6cff6b1083c" sshConfig="gaoyifei@202.120.38.21:30029 password">
+        <fileTransfer rootFolder="/home/gaoyifei" accessType="SFTP" host="202.120.38.21" port="30029" sshConfigId="faec8f79-e034-4678-9e0b-f6cff6b1083c" sshConfig="gaoyifei@202.120.38.21:30029 password">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>
