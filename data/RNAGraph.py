@@ -463,7 +463,7 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         self.name = name
 
         print("processing test data")
-        self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='ls',
+        self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='test',
                                 fold_algo=fold_algo, probabilistic=probablistic, debias=debias)
 
         print("processing train data")
@@ -474,9 +474,9 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
 
         basedir = '/data/gaoyifei'
         if debias == 'True':
-            path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb_debias')
+            path_template = os.path.join(basedir, 'data', 'PrismNetData', 'RNAGraphProb_debias')
         else:
-            path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb')
+            path_template = os.path.join(basedir, 'data', 'PrismNetData', 'RNAGraphProb')
         if os.path.exists(path_template) is False:
             os.mkdir(path_template)
         path_template = os.path.join(path_template, name + fold_algo + '_768_noedata.pkl')

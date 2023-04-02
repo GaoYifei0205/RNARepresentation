@@ -157,10 +157,12 @@ def fold_seq_linearpartition(seq, cutoff):
     np.random.seed(random.seed())
     name = str(np.random.rand())
     cmd = 'echo %s | /data/gaoyifei/LinearPartition-master/linearpartition -c %.4f --prefix %s' % (seq, cutoff, name)
+
     ret = subprocess.Popen(cmd, shell=True)
     ret.wait()
     # assemble adjacency matrix
     print(ret)
+
     row_col, link, prob = [], [], []
     length = len(seq)
     for i in range(length):
@@ -172,9 +174,11 @@ def fold_seq_linearpartition(seq, cutoff):
             row_col.append((i, i - 1))
             link.append(2)
             prob.append(1.)
+
     # Extract base pair information.
     name += '_1'
     with open(name) as f:
+        print(name +' is opened!')
         for line in f:
             values = line.split()
             if len(values) == 3:
@@ -189,6 +193,7 @@ def fold_seq_linearpartition(seq, cutoff):
                 link.append(4)
                 prob.append(avg_prob ** 2)
     # delete output file.
+    print('Step 5 succeed!')
     os.remove(name)
     # placeholder for dot-bracket structure
     return (sp.csr_matrix((link, (np.array(row_col)[:, 0], np.array(row_col)[:, 1])), shape=(length, length)),
