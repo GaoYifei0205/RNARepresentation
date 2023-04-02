@@ -653,6 +653,7 @@ def fold_rna_from_file(filepath, p=None, fold_algo='mxfold2', probabilistic=Fals
     elif fold_algo == 'linearpartition':
         a = os.path.exists(os.path.join(os.path.dirname(filepath), '{}rel_mat.obj'.format(prefix)))
         b = os.path.exists(os.path.join(os.path.dirname(filepath), '{}prob_mat.obj'.format(prefix)))
+        print('*****file path is '+filepath+'*****')
         if a and b:
             print("already preprocessed!")
         else:
