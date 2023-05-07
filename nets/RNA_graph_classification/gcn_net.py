@@ -97,12 +97,12 @@ class GCNNet(nn.Module):
         # self.cross_weight_layer = nn.ModuleList()
         # self.cross_weight_layer.append(WeightCrossLayer(in_dim=501, out_dim=501//2+1))
         # self.cross_weight_layer.append(WeightCrossLayer(in_dim=501, out_dim=501//4+1))
-        self.batchnorm_weight = nn.BatchNorm1d(501)
+        self.batchnorm_weight = nn.BatchNorm1d(101)
 
         input_dim = width_o2 * 32
         # input_dim = 2016
         # self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
-        self.MLP_layer = MLPReadout(16032, self.n_classes)
+        self.MLP_layer = MLPReadout(3232, self.n_classes)
         # 501*32 + 2016 = 18048
 
     def forward(self, g, h, e):  # g:batch_graphs, h: batch_x节点特征, e: batch_e边特征

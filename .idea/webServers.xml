@@ -9,6 +9,13 @@
           </advancedOptions>
         </fileTransfer>
       </webServer>
+      <webServer id="422577a2-98d0-4d71-8325-d25c089f8b67" name="newRNASSR">
+        <fileTransfer accessType="SFTP" host="202.120.38.21" port="30177" sshConfigId="e49de64d-5566-4a05-96a2-5ba63ceea3d6" sshConfig="gaoyifei@202.120.38.21:30177 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
     </option>
   </component>
 </project>

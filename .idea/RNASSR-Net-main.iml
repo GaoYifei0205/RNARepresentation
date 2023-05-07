@@ -4,7 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/data/GraphProt_CLIP_sequences" />
     </content>
-    <orderEntry type="jdk" jdkName="Remote Python 3.7.4 (sftp://gaoyifei@202.120.38.21:30029/home/gaoyifei/.conda/envs/RNASSR/bin/python3.7)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Remote Python 3.7.4 (sftp://gaoyifei@202.120.38.21:30177/home/gaoyifei/.conda/envs/RNASSR/bin/python3.7)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
