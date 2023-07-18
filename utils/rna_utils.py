@@ -155,7 +155,7 @@ def fold_seq_rnaplfold(seq, w, l, cutoff, no_lonely_bps):
 def fold_seq_linearpartition(seq, cutoff):
     np.random.seed(random.seed())
     name = str(np.random.rand())
-    cmd = 'echo %s | /data/gaoyifei/LinearPartition-master/linearpartition -c %.4f --prefix %s' % (seq, cutoff, name)
+    cmd = 'echo %s | /home/gaoyifei/LinearPartition/linearpartition -c %.4f --prefix %s' % (seq, cutoff, name)
     ret = subprocess.Popen(cmd, shell=True)
     ret.wait()
     # assemble adjacency matrix

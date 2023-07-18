@@ -462,22 +462,21 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         """
         t_data = time.time()
         self.name = name
-
+        base_dir = '/amax/data/gaoyifei/GraphProt/'
         print("processing test data")
-        self.test = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='ls',
+        self.test = RNAGraphDGL(base_dir, dataset=self.name, split='test',
                                 fold_algo=fold_algo, probabilistic=probablistic, debias=debias)
 
         print("processing train data")
-        self.train_ = RNAGraphDGL("/data/gaoyifei/data/", dataset=self.name, split='train',
+        self.train_ = RNAGraphDGL(base_dir, dataset=self.name, split='train',
                                   fold_algo=fold_algo, probabilistic=probablistic, debias=debias)
 
         inds = np.random.permutation(np.arange(0, int(len(self.train_))))
 
-        basedir = '/data/gaoyifei'
         if debias == 'True':
-            path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb_debias')
+            path_template = os.path.join(base_dir, 'GraphProt_CLIP_sequences', 'RNAGraphProb_debias')
         else:
-            path_template = os.path.join(basedir, 'data', 'GraphProt_CLIP_sequences', 'RNAGraphProb')
+            path_template = os.path.join(base_dir, 'GraphProt_CLIP_sequences', 'RNAGraphProb')
         if os.path.exists(path_template) is False:
             os.mkdir(path_template)
         path_template = os.path.join(path_template, name + fold_algo + '_768_noedata.pkl')
