@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python:train",
+            "type": "python",
+            "request": "launch",
+            "python": "/amax/data/anaconda3/envs/RNASSR/bin/python",
+            "args": [
+                "--dataset",
+                "ALKBH5_Baltz2012",
+                "--gpu_id",
+                "4",
+                "--config",
+                "configs/RNAgraph_graph_classification_GCN_in_vivo_100k.json",
+                "--debias",
+                "False",
+                "--model",
+                "GCN",
+                "--fold_algo",
+                "linearpartition"
+            ],
+            "program": "${file}",
+            // "console": "integratedTerminal",
+            // "justMyCode": false
+        }
+    ]
+}

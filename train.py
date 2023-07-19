@@ -32,13 +32,20 @@ class DotDict(dict):
 def gpu_setup(use_gpu, gpu_id):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-
+    print("use_gpu:",use_gpu)
+    print("cuda availability:", torch.cuda.is_available())
+    
+    # #多进程导致torch.cuda.is_available()卡死
+    # print('cuda available with GPU:' ,torch.cuda.get_device_name(0))
+    # device = torch.device("cuda")
     if torch.cuda.is_available() and use_gpu:
         print('cuda available with GPU:' ,torch.cuda.get_device_name(0))
         device = torch.device("cuda")
+
     else:
         print('cuda not available')
         device = torch.device("cpu")
+
     return device
 
 """
@@ -60,9 +67,9 @@ def loss_record(DATASET_NAME, print_str, epoch, config):
 def save_model(DATASET_NAME, model, epoch, config):
     # save
     if config['debias'] == "True":
-        save_dir = '/data/gaoyifei/model_save/debias/'
+        save_dir = '/amax/data/gaoyifei/RNARepr_model_save/debias/'
     else:
-        save_dir = '/data/gaoyifei/model_save/bias/'
+        save_dir = '/amax/data/gaoyifei/RNARepr_model_save/bias/'
     if os.path.exists(save_dir) is False:
         os.makedirs(save_dir)
     if os.path.exists(save_dir + DATASET_NAME) is False:
@@ -114,6 +121,7 @@ def view_model_param(MODEL_NAME, net_params):
 """
 
 def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs, config):
+    print("Training pipeline begins.")
     t0 = time.time()
     per_epoch_time = []
     best_val_auc = 0
@@ -123,6 +131,7 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs, config):
     results_print_str = None
     print_list = []
     DATASET_NAME = dataset.name
+    print("Parameter group 1 has been set.")
 
     if MODEL_NAME in ['GCN', 'GAT']:
         if net_params['self_loop']:
@@ -133,6 +142,7 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs, config):
 
     root_log_dir, root_ckpt_dir, write_file_name, write_config_file = dirs
     device = net_params['device']
+    print("Parameter group 2 has been set.")
 
     # Write the network and optimization hyper-parameters in folder config/
     with open(write_config_file + '.txt', 'w') as f:
@@ -141,6 +151,7 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs, config):
 
     log_dir = os.path.join(root_log_dir, "RUN_" + str(0))
     writer = SummaryWriter(log_dir=log_dir)
+    print("Parameter group 3 has been set.")
 
     # setting seeds
     random.seed(params['seed'])
@@ -399,7 +410,7 @@ def main():
     if args.max_time is not None:
         params['max_time'] = float(args.max_time)
 
-
+    print("if-else operations finished.")
 
     # network parameters
     net_params = config['net_params']
@@ -459,6 +470,8 @@ def main():
     num_classes = len(np.unique(dataset.train[:][1].numpy()))
     net_params['n_classes'] = num_classes
 
+    print("Network params finished.")
+
     root_log_dir = out_dir + 'logs/' + MODEL_NAME + "_" + DATASET_NAME + "_GPU" + str \
         (config['gpu']['id']) + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
     root_ckpt_dir = out_dir + 'checkpoints/' + MODEL_NAME + "_" + DATASET_NAME + "_GPU" + str \
@@ -468,6 +481,7 @@ def main():
     write_config_file = out_dir + 'configs/config_' + MODEL_NAME + "_" + DATASET_NAME + "_GPU" + str \
         (config['gpu']['id']) + "_" + time.strftime('%Hh%Mm%Ss_on_%b_%d_%Y')
     dirs = root_log_dir, root_ckpt_dir, write_file_name, write_config_file
+    print("Dirs finished.")
 
     if not os.path.exists(out_dir + 'results'):
         os.makedirs(out_dir + 'results')
@@ -476,7 +490,7 @@ def main():
         os.makedirs(out_dir + 'configs')
 
     net_params['total_param'] = view_model_param(MODEL_NAME, net_params)
-
+    print("End of main.")
     train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs, config)
 
 

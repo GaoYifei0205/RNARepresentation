@@ -338,16 +338,19 @@ class RNADataset(torch.utils.data.Dataset):
         self.name = name
         if config['debias'] == "True":
             print("data debiased!")
-            data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb_debias/'
+            data_dir = '/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/RNAGraphProb_debias/'
         else:
             print("data biased!")
-            data_dir = '/data/gaoyifei/data/GraphProt_CLIP_sequences/RNAGraphProb/'
+            data_dir = '/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/RNAGraphProb/'
         # data_dir = 'data/RNAGraph/'
         with open(data_dir + name + fold_algo + '_768_noedata.pkl', "rb") as f:
-            f = pickle.load(f)
-            self.train = f[0]
-            self.val = f[1]
-            self.test = f[2]
+            # f = pickle.load(f)
+            # self.train = f[0]
+            # self.val = f[1]
+            # self.test = f[2]
+            self.train = pickle.load(f)[0]
+            self.val = pickle.load(f)[0]
+            self.test = pickle.load(f)[0]
 
         num_val = len(self.val.graph_lists)
         all_train_graphs = self.train.graph_lists + self.val.graph_lists
@@ -486,8 +489,8 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         # _train_sequences = self._construct_sequence_features(_train_graphs, window_size)
         _train_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[int(len(self.train_) * num_val):]])
         self.train = DGLFormDataset(_train_graphs, _train_labels)
-        with open(path_template, 'wb') as f:
-            pickle.dump([self.train], f)
+        # with open(path_template, 'wb') as f:
+        #     pickle.dump([self.train], f)
         print('length of train dataset: ', len(self.train))
         print('first element in train dataset: ', self.train[0])
 
@@ -496,8 +499,8 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         # _val_sequences = self._construct_sequence_features(_val_graphs, window_size)
         _val_labels = torch.tensor([self.train_.graph_labels[ind] for ind in inds[:int(len(self.train_)*num_val)]])
         self.val = DGLFormDataset(_val_graphs, _val_labels)
-        with open(path_template, 'wb') as f:
-            pickle.dump([self.val], f)
+        # with open(path_template, 'wb') as f:
+        #     pickle.dump([self.val], f)
         print('length of val dataset: ', len(self.val))
         print('first element in val dataset: ', self.val[0])
 
@@ -507,8 +510,8 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         # _test_sequences = self._construct_sequence_features(_test_graphs, window_size)
         _test_labels = torch.tensor([self.test.graph_labels[ind] for ind in inds])
         self.test = DGLFormDataset(_test_graphs, _test_labels)
-        with open(path_template, 'wb') as f:
-            pickle.dump([self.test], f)
+        # with open(path_template, 'wb') as f:
+        #     pickle.dump([self.test], f)
         print('length of test dataset: ', len(self.test))
         print('first element in test dataset: ', self.test[0])
         # _val_graphs, _val_labels = self.train_[:int(len(self.train_)*num_val)]
@@ -518,6 +521,12 @@ class RNAGraphDatasetDGL(torch.utils.data.Dataset):
         # self.train = DGLFormDataset(_train_graphs, _train_labels)
         # self.val = DGLFormDataset(_val_graphs, _val_labels)
         # self.test = DGLFormDataset(_test_graphs, _test_labels)
+        with open(path_template, 'wb') as f:
+            pickle.dump([self.train], f)
+            pickle.dump([self.val], f)
+            pickle.dump([self.test], f)
+        f.close()
+            
 
         print("[I] Data load time: {:.4f}s".format(time.time() - t_data))
 

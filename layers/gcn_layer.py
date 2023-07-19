@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 import dgl.function as fn
 from dgl.nn.pytorch import GraphConv
-from dgl._deprecate.graph import DGLGraph
+# from dgl._deprecate.graph import DGLGraph
 """
     GCN: Graph Convolutional Networks
     Thomas N. Kipf, Max Welling, Semi-Supervised Classification with Graph Convolutional Networks (ICLR 2017)
@@ -80,7 +80,8 @@ class GCNLayer(nn.Module):
             g.apply_nodes(func=self.apply_mod)
             h = g.ndata['h']  # result of graph convolution
         else:
-            g = dgl.transform.add_self_loop(g)
+            # g = dgl.transform.add_self_loop(g)
+            g = dgl.add_self_loop(g)
             h = self.conv(g, feature)
 
         if self.batch_norm:
@@ -118,7 +119,8 @@ class GNNPoolLayer(nn.Module):
 
         new_graph_list = []
         for i in range(len(sub_graph_list)):
-            new_graph = DGLGraph(sub_graph_list[i].subgraph(self.ind_graph))
+            # new_graph = DGLGraph(sub_graph_list[i].subgraph(self.ind_graph))
+            new_graph = dgl.graph(sub_graph_list[i].subgraph(self.ind_graph))
             print(new_graph)
             new_graph.copy_from_parent()
             new_graph_list.append(new_graph)
