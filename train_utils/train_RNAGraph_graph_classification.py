@@ -68,10 +68,15 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
             batch_labels = labels[i*batch_size//parts:(i+1)*batch_size//parts].to(device)
             optimizer.zero_grad()
 
-            batch_scores = model.forward(batch_graphs, batch_x, batch_e)
+            batch_scores = model.forward(batch_graphs, batch_x, batch_e) #(batch_size,2)
             # batch_scores = model.forward(batch_graphs, batch_feature, batch_x, batch_e)
 
-            loss = model.loss(batch_scores, batch_labels)
+            model_loss = model.loss(batch_scores, batch_labels)
+
+            protein_loss = model.RBP_loss(batch_graphs)
+            # protein_loss = 0
+            
+            loss = model_loss + protein_loss
 
             b = 0.05
             loss = torch.abs(loss - b) + b

@@ -21,9 +21,20 @@
                 "--fold_algo",
                 "linearpartition"
             ],
+            "program": "/home/gaoyifei/RNARepresentation/train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+            // "purpose": ["debug-in-terminal"]
+        },
+        {
+            "name": "Python:current file",
+            "type": "python",
+            "request": "launch",
+            "python": "/amax/data/anaconda3/envs/RNASSR/bin/python",
+            
             "program": "${file}",
-            // "console": "integratedTerminal",
-            // "justMyCode": false
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }

@@ -102,13 +102,13 @@ class GCNNet(nn.Module):
         input_dim = width_o2 * 32
         # input_dim = 2016
         # self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
-        self.MLP_layer = MLPReadout(16032, self.n_classes)
+        self.MLP_layer = MLPReadout(501*32, self.n_classes)
         # 501*32 + 2016 = 18048
 
     def forward(self, g, h, e):  # g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
         # 详见train_RNAGraph_graph_classification.py
-        batch_size = len(g.batch_num_nodes())
-        window_size = g.batch_num_nodes()[0]
+        batch_size = len(g.batch_num_nodes())  #128
+        window_size = g.batch_num_nodes()[0] #tensor(501, device='cuda0')
         similar_loss = 0
         cnn_node_weight = 0
         weight2gnn_list = []
@@ -119,9 +119,9 @@ class GCNNet(nn.Module):
         # h2 = h2.to(self.device)
         # h2: torch.Size([128, 1, 501, 25])
 
-        h1 = self.embedding_h(h)  # h1:(64128, 32)  h:(64128, 25)
+        h1 = self.embedding_h(h)  # h1:(501*batch_size, 32)  h:(501*batch_size, 768)
         # print(h1.shape)
-        h1 = self.in_feat_dropout(h1)  # h1:(64128, 32)
+        h1 = self.in_feat_dropout(h1)  # h1:(501*batch_size, 32)
         # print(h1.shape)
         # print("loop start")
         # h2 = torch.unsqueeze(feature, dim=1)
@@ -157,12 +157,12 @@ class GCNNet(nn.Module):
         # similar_loss += torch.mean(torch.norm(cnn_node_weight - weight2cnn_list[-1], dim=1))
         # self.similar_loss = similar_loss
 
-        g.ndata['h'] = h1
+        g.ndata['h'] = h1  #更新节点特征
 
-        hg = self.conv_readout_layer(g, h1)
+        hg = self.conv_readout_layer(g, h1)  #(128,32,501,1)
 
-        gnn_node_weight = torch.mean(hg, dim=1).squeeze(-1)
-        self.node_weight = self.batchnorm_weight(gnn_node_weight)
+        gnn_node_weight = torch.mean(hg, dim=1).squeeze(-1) #(128,501)
+        self.node_weight = self.batchnorm_weight(gnn_node_weight) #(128,501)
         # hg.shape: torch.Size([128, 32, 501, 1])
         # cnn_node_weight.shape: torch.Size([128, 501, 22])
         # cnn_node_weight.unsqueeze(1).unsqueeze(-1).shape: torch.Size([128, 1, 501, 22, 1])
@@ -170,18 +170,18 @@ class GCNNet(nn.Module):
         # hg = torch.mul(hg, w)
         # hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
 
-        hg = torch.flatten(hg, start_dim=1)  # 128 32 22
+        hg = torch.flatten(hg, start_dim=1)  # (128,501*32)
         # hc = torch.flatten(h2, start_dim=1)
 
         # h_final = torch.cat([hg, hc], dim=1)
-        h_final = hg  #(128, 24896)
-        pred = self.MLP_layer(h_final)
+        h_final = hg  # (128,501*32)
+        pred = self.MLP_layer(h_final) #(128,2)
 
         return pred
 
     def loss(self, pred, label):
         criterion = nn.CrossEntropyLoss()
-        loss = criterion(pred, label)
+        loss = criterion(pred, label) #pred:(batch_size,2) label:(batch_size)
         # loss = criterion(self.pre_cnn, label) + criterion(self.pre_gnn, label)
         # loss += 0.01 * self.similar_loss
         return loss
@@ -199,6 +199,16 @@ class GCNNet(nn.Module):
         output = torch.transpose(output, 1, 2)
         output = output.unsqueeze(1)
         return output
+    
+    def RBP_loss(self, g):
+        criterion = nn.MSELoss()
+        graph_feature = self._graph2feature(g)
+        RBP = 'C22ORF28_Baltz2012'
+        protein_feature = torch.load('/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/'+ RBP+'/'+RBP+'_expand.pt')
+        aligned_protein = protein_feature.unsqueeze(0).expand(128,-1,-1,-1).to(self.device)
+
+        mse_loss = criterion(graph_feature, aligned_protein)
+        return mse_loss
 
 # self.similar_loss = torch.norm(
 #     torch.mean(torch.mean(h2, dim=1).squeeze(-1), dim=0) -

@@ -99,10 +99,10 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         #     self.graph_labels = f[1]
         self.n_samples = len(self.graph_lists)
         # del adjacency_matrix, tensor_list
-        print("prepare data")
-        self._prepare()
+        # print("prepare data")
+        # self.pad()
 
-    def _prepare(self):
+    def pad(self):  
         # self.Adj_matrices, self.node_features, self.edges_lists, self.edge_features = [], [], [], []
         window_size = 501
         #tqdm: 显示进度条
