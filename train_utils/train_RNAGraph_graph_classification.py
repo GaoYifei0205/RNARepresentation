@@ -64,20 +64,21 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
             # batch_graphs.ndata['feat'] = batch_graphs.ndata['feat'].to(device)
             # batch_graphs.edata['feat'] = batch_graphs.edata['feat'].to(device)
             batch_x = batch_graphs.ndata['feat'] # num x feat
+            batch_id = batch_graphs.ndata['id']
             batch_e = batch_graphs.edata['feat']
             batch_labels = labels[i*batch_size//parts:(i+1)*batch_size//parts].to(device)
             optimizer.zero_grad()
 
-            batch_scores = model.forward(batch_graphs, batch_x, batch_e) #(batch_size,2)
+            batch_scores = model.forward(batch_graphs, batch_x, batch_id, batch_e) #(batch_size,2)
             # batch_scores = model.forward(batch_graphs, batch_feature, batch_x, batch_e)
 
             model_loss = model.loss(batch_scores, batch_labels)
 
-            protein_loss = model.RBP_loss(batch_graphs)
+            protein_loss = model.RBP_loss(batch_graphs, batch_labels)
             # protein_loss = 0
             
             loss = model_loss + protein_loss
-
+            print("iter: ", iter, "model loss: ", model_loss, "protein_loss: ", protein_loss)
             b = 0.05
             loss = torch.abs(loss - b) + b
 
@@ -106,10 +107,11 @@ def evaluate_network_sparse(model, device, data_loader, epoch):
             # batch_graphs.ndata['feat'] = batch_graphs.ndata['feat'].to(device)
             # batch_graphs.edata['feat'] = batch_graphs.edata['feat'].to(device)
             batch_x = batch_graphs.ndata['feat'] # num x feat
+            batch_id = batch_graphs.ndata['id']
             batch_e = batch_graphs.edata['feat']
             batch_labels = batch_labels.to(device)
 
-            batch_scores = model.forward(batch_graphs, batch_x, batch_e)
+            batch_scores = model.forward(batch_graphs, batch_x, batch_id, batch_e)
             # one_hot_matrices = model.sequence.detach().cpu().numpy()
             # sequence = matrix2seq(one_hot_matrices)
             # base_weight = model.base_weight.detach().cpu().numpy()

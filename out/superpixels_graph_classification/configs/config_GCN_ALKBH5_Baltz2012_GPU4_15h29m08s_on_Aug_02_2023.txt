@@ -1,0 +1,10 @@
+Dataset: ALKBH5_Baltz2012,
+Model: GCN
+
+params={'seed': 39, 'epochs': 100, 'batch_size': 128, 'init_lr': 0.001, 'lr_reduce_factor': 0.5, 'lr_schedule_patience': 10, 'min_lr': 1e-05, 'weight_decay': 0.01, 'print_epoch_interval': 5, 'max_time': 24}
+
+net_params={'L': 1, 'hidden_dim': 32, 'out_dim': 32, 'residual': True, 'readout': 'mean', 'in_feat_dropout': 0.25, 'dropout': 0.25, 'batch_norm': True, 'self_loop': True, 'n_heads': 1, 'layer_type': 'dgl', 'device': device(type='cuda'), 'gpu_id': 4, 'batch_size': 128, 'in_dim': 768, 'in_dim_edge': 1, 'n_classes': 2, 'total_param': 35692}
+
+
+Total Parameters: 35692
+

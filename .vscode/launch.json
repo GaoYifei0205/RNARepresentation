@@ -9,7 +9,7 @@
             "python": "/amax/data/anaconda3/envs/RNASSR/bin/python",
             "args": [
                 "--dataset",
-                "ALKBH5_Baltz2012",
+                "sampled_data",
                 "--gpu_id",
                 "4",
                 "--config",
@@ -35,6 +35,22 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false
+        },
+        {
+            "name": "Python:preprocess",
+            "type": "python",
+            "request": "launch",
+            "python": "/amax/data/anaconda3/envs/RNASSR/bin/python",
+            "args": [
+                "sampled_data",
+                "False",
+                "linearpartition",
+                "True"
+            ],
+            "program": "/home/gaoyifei/RNARepresentation/preprocess.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+            // "purpose": ["debug-in-terminal"]
         }
     ]
 }

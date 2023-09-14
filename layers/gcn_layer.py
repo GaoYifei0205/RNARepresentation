@@ -184,7 +184,7 @@ class ConvReadoutLayerBACK(nn.Module):
 
 
 class ConvReadoutLayer(nn.Module):
-    """Conv Readout layer."""
+    """Conv Readout layer.并未进行卷积操作，而是将output拼接。"""
     def __init__(self, mode="mean", **kwargs):
         super().__init__()
         self.mode = mode

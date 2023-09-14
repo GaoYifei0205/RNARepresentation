@@ -102,10 +102,11 @@ class GCNNet(nn.Module):
         input_dim = width_o2 * 32
         # input_dim = 2016
         # self.MLP_layer = MLPReadout(501*32 + input_dim, self.n_classes)
-        self.MLP_layer = MLPReadout(501*32, self.n_classes)
+        # self.MLP_layer = MLPReadout(501*32, self.n_classes)
+        self.MLP_layer = MLPReadout(32, self.n_classes)
         # 501*32 + 2016 = 18048
 
-    def forward(self, g, h, e):  # g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
+    def forward(self, g, h, id, e):  # g:batch_graphs, h: batch_x节点特征, e: batch_e边特征
         # 详见train_RNAGraph_graph_classification.py
         batch_size = len(g.batch_num_nodes())  #128
         window_size = g.batch_num_nodes()[0] #tensor(501, device='cuda0')
@@ -127,7 +128,7 @@ class GCNNet(nn.Module):
         # h2 = torch.unsqueeze(feature, dim=1)
         for i in range(self.n_layers):
             # GNN
-            h1 = self.layers_gnn[2 * i](g, h1)
+            h1 = self.layers_gnn[i](g, h1)
             # h1 = self.layers_gnn[2 * i + 1](g, h1)
             # g, h1, _ = GNNPoolLayer(batch_size=batch_size, node_num=math.ceil(window_size / 2 ** i))(g, h1)
 
@@ -158,11 +159,12 @@ class GCNNet(nn.Module):
         # self.similar_loss = similar_loss
 
         g.ndata['h'] = h1  #更新节点特征
+        g.ndata['id'] = id
+        hg = dgl.mean_nodes(g,'h')
+        # hg = self.conv_readout_layer(g, h1)  #(128,32,501,1)
 
-        hg = self.conv_readout_layer(g, h1)  #(128,32,501,1)
-
-        gnn_node_weight = torch.mean(hg, dim=1).squeeze(-1) #(128,501)
-        self.node_weight = self.batchnorm_weight(gnn_node_weight) #(128,501)
+        # gnn_node_weight = torch.mean(hg, dim=1).squeeze(-1) #(128,501)
+        # self.node_weight = self.batchnorm_weight(gnn_node_weight) #(128,501)
         # hg.shape: torch.Size([128, 32, 501, 1])
         # cnn_node_weight.shape: torch.Size([128, 501, 22])
         # cnn_node_weight.unsqueeze(1).unsqueeze(-1).shape: torch.Size([128, 1, 501, 22, 1])
@@ -170,11 +172,11 @@ class GCNNet(nn.Module):
         # hg = torch.mul(hg, w)
         # hg = torch.mul(hg, cnn_node_weight.unsqueeze(1).unsqueeze(-1))
 
-        hg = torch.flatten(hg, start_dim=1)  # (128,501*32)
+        # hg = torch.flatten(hg, start_dim=1)  # (128,501*32)
         # hc = torch.flatten(h2, start_dim=1)
 
         # h_final = torch.cat([hg, hc], dim=1)
-        h_final = hg  # (128,501*32)
+        h_final = hg  # (128,501*32) 改后为#(128, 32)
         pred = self.MLP_layer(h_final) #(128,2)
 
         return pred
@@ -187,28 +189,76 @@ class GCNNet(nn.Module):
         return loss
 
     def _graph2feature(self, g):
-        feat = g.ndata['feat']
+        feat = g.ndata['h']
         start, first_flag = 0, 0
         for batch_num in g.batch_num_nodes():
             if first_flag == 0:
-                output = torch.transpose(feat[start:start + batch_num], 1, 0).unsqueeze(0)
+                output = torch.mean(torch.transpose(feat[start:start + batch_num], 1, 0).unsqueeze(0), dim = 2)
                 first_flag = 1
             else:
-                output = torch.cat([output, torch.transpose(feat[start:start + batch_num], 1, 0).unsqueeze(0)], dim=0)
+                gr_mean = torch.mean(torch.transpose(feat[start:start + batch_num], 1, 0).unsqueeze(0), dim = 2)
+                output = torch.cat([output,gr_mean], dim=0)
             start += batch_num
-        output = torch.transpose(output, 1, 2)
-        output = output.unsqueeze(1)
+        # output = torch.transpose(output, 1, 2)
+        # output = output.unsqueeze(1)
         return output
     
-    def RBP_loss(self, g):
-        criterion = nn.MSELoss()
-        graph_feature = self._graph2feature(g)
-        RBP = 'C22ORF28_Baltz2012'
-        protein_feature = torch.load('/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/'+ RBP+'/'+RBP+'_expand.pt')
-        aligned_protein = protein_feature.unsqueeze(0).expand(128,-1,-1,-1).to(self.device)
+    def RBP_loss(self, g, label):
+        result=["ALKBH5_Baltz2012",
+            "C17ORF85_Baltz2012",
+            "C22ORF28_Baltz2012",
+            "CAPRIN1_Baltz2012",
+            "CLIPSEQ_AGO2",
+            "CLIPSEQ_ELAVL1",
+            "CLIPSEQ_SFRS1",
+            "ICLIP_HNRNPC",
+            "ICLIP_TDP43",
+            "ICLIP_TIA1",
+            "ICLIP_TIAL1",
+            "PARCLIP_AGO1234",
+            "PARCLIP_ELAVL1",
+            "PARCLIP_ELAVL1A",
+            "PARCLIP_EWSR1",
+            "PARCLIP_FUS",
+            "PARCLIP_HUR",
+            "PARCLIP_IGF2BP123",
+            "PARCLIP_MOV10_Sievers",
+            "PARCLIP_PUM2",
+            "PARCLIP_QKI",
+            "PARCLIP_TAF15",
+            "PTBv1",
+            "ZC3H7B_Baltz2012"]
+        start, first_flag = 0, 0
+        feat = g.ndata['feat']
+        ids = g.ndata['id']
+        w = self.embedding_h.weight #(32,768)
+        b = self.embedding_h.bias #(32)
 
-        mse_loss = criterion(graph_feature, aligned_protein)
-        return mse_loss
+        
+        for batch_num in g.batch_num_nodes():
+            
+            id = ids[start:start + batch_num]
+            id_tensor = id[0]
+            indices = torch.nonzero(id_tensor == 1).squeeze()
+            index_as_int = indices.item()
+            name = result[index_as_int]
+            protein_feature = torch.load('/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/'+ name +'/'+ name +'.pt')['representations'][12]
+            mean_protein = torch.mean(protein_feature,dim = 0, keepdim=True)
+            mean_protein_linear = torch.matmul(mean_protein.to(self.device),w.T.to(self.device))+b.to(self.device)
+            if first_flag == 0:
+                protein_features = mean_protein_linear
+                first_flag = 1
+            else:
+                protein_features = torch.cat([protein_features,mean_protein_linear], dim=0)
+            start += batch_num
+            
+        criterion = nn.CosineEmbeddingLoss(margin = 0.2)
+
+        graph_feature = self._graph2feature(g)
+        
+        rbp_loss = criterion(graph_feature.to(self.device), protein_features.to(self.device), label.to(self.device))
+
+        return rbp_loss
 
 # self.similar_loss = torch.norm(
 #     torch.mean(torch.mean(h2, dim=1).squeeze(-1), dim=0) -

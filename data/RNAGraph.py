@@ -88,10 +88,9 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         neg_tensor = torch.load(tensor_path_template.format(dataset, split, 'negatives'))
         tensor_list = pos_tensor + neg_tensor
         # del pos_tensor, neg_tensor
-# killed for C22ORF28_Baltz2012
+
         print("convert graph to dglgraph")
-        # self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
-        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list)
+        self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list, self.all_id)
         # data_path = os.path.join(data_dir, dataset + '_graphs_' + split + '.pkl')
         # with open(data_path, "rb") as f:
         #     f = pickle.load(f)
@@ -190,27 +189,57 @@ class RNAGraphDGL(torch.utils.data.Dataset):
     #         dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i]))
     #     return dgl_graph_list
 # tensor_list[i]对应每个序列的tensor
-    def _convert2dglgraph(self, seq_list, csr_matrixs, tensor_list):
+    def _convert2dglgraph(self, seq_list, csr_matrixs, tensor_list, id_list):
         dgl_graph_list = []
         for i in tqdm(range(len(csr_matrixs))):
-            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i], tensor_list[i]))
+            dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i], tensor_list[i], id_list[i]))
         return dgl_graph_list
 
-    def _constructGraph(self, seq, csr_matrix, tensorline):
+    def _constructGraph(self, seq, csr_matrix, tensorline, id):
         # seq_upper = seq.upper()
         # d = {'A': torch.tensor([[1., 0., 0., 0.]]),
         #      'G': torch.tensor([[0., 1., 0., 0.]]),
         #      'C': torch.tensor([[0., 0., 1., 0.]]),
         #      'U': torch.tensor([[0., 0., 0., 1.]]),
         #      'T': torch.tensor([[0., 0., 0., 1.]])}
-
+        d = {
+            'ALKBH5_Baltz2012': torch.tensor([[1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'C17ORF85_Baltz2012': torch.tensor([[0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'C22ORF28_Baltz2012': torch.tensor([[0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'CAPRIN1_Baltz2012': torch.tensor([[0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'CLIPSEQ_AGO2': torch.tensor([[0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'CLIPSEQ_ELAVL1': torch.tensor([[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'CLIPSEQ_SFRS1': torch.tensor([[0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'ICLIP_HNRNPC': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'ICLIP_TDP43': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'ICLIP_TIA1': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'ICLIP_TIAL1': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_AGO1234': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_ELAVL1': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_ELAVL1A': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_EWSR1': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_FUS': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_HUR': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_IGF2BP123': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_MOV10_Sievers': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,]]),
+            'PARCLIP_PUM2': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,]]),
+            'PARCLIP_QKI': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,]]),
+            'PARCLIP_TAF15': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,]]),
+            'PTBv1': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0.,]]),
+            'ZC3H7B_Baltz2012': torch.tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,]]),
+        }
         grh = dgl.DGLGraph(csr_matrix)
         grh.ndata['feat'] = torch.zeros((grh.number_of_nodes(), 768))
-
+        grh.ndata['id'] = torch.zeros((grh.number_of_nodes(),24))
         #节点表征
         for i in range(len(seq)):
             grh.ndata['feat'][i] = tensorline[0][i]
 
+            start = id.find('>') + 1
+            end = id.find('.')
+            if start > 0 and end > 0:
+                RBP_id = id[start:end]
+            grh.ndata['id'][i] = d[RBP_id]
         # grh.edata['feat'] = torch.tensor(csr_matrix.data).type(torch.float64)
         # grh.edata['feat'] = grh.edata['feat'].unsqueeze(1)
         #
@@ -312,6 +341,7 @@ def self_loop(g: object) -> object:
     new_g = dgl.DGLGraph()
     new_g.add_nodes(g.number_of_nodes())
     new_g.ndata['feat'] = g.ndata['feat']
+    new_g.ndata['id'] = g.ndata['id']
 
     src, dst = g.all_edges(order="eid")
     src = dgl.backend.zerocopy_to_numpy(src)
@@ -389,6 +419,7 @@ class RNADataset(torch.utils.data.Dataset):
         #     features = torch.cat([features, feature], dim=0)
         for idx, graph in enumerate(graphs):
             graphs[idx].ndata['feat'] = graph.ndata['feat'].float()
+            graphs[idx].ndata['id'] = graph.ndata['id'].float()
             graphs[idx].edata['feat'] = graph.edata['feat'].float()
 
         return graphs, labels
