@@ -233,8 +233,8 @@ class GCNNet(nn.Module):
         ids = g.ndata['id']
         w = self.embedding_h.weight #(32,768)
         b = self.embedding_h.bias #(32)
-
-        
+        w = w.to(self.device)
+        b = b.to(self.device)
         for batch_num in g.batch_num_nodes():
             
             id = ids[start:start + batch_num]
@@ -243,8 +243,8 @@ class GCNNet(nn.Module):
             index_as_int = indices.item()
             name = result[index_as_int]
             protein_feature = torch.load('/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/'+ name +'/'+ name +'.pt')['representations'][12]
-            mean_protein = torch.mean(protein_feature,dim = 0, keepdim=True)
-            mean_protein_linear = torch.matmul(mean_protein.to(self.device),w.T.to(self.device))+b.to(self.device)
+            mean_protein = torch.mean(protein_feature,dim = 0, keepdim=True).to(self.device)
+            mean_protein_linear = torch.matmul(mean_protein,w.T)+b
             if first_flag == 0:
                 protein_features = mean_protein_linear
                 first_flag = 1
@@ -254,9 +254,9 @@ class GCNNet(nn.Module):
             
         criterion = nn.CosineEmbeddingLoss(margin = 0.2)
 
-        graph_feature = self._graph2feature(g)
+        graph_feature = self._graph2feature(g).to(self.device)
         
-        rbp_loss = criterion(graph_feature.to(self.device), protein_features.to(self.device), label.to(self.device))
+        rbp_loss = criterion(graph_feature, protein_features.to(self.device), label.to(self.device))
 
         return rbp_loss
 

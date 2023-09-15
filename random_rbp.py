@@ -9,15 +9,17 @@ rbp2 = base_dir+'ICLIP_TDP43'
 rbp3 = base_dir+'ICLIP_TIAL1'
 rbp4 = base_dir+'PARCLIP_MOV10_Sievers'
 # 定义文件路径
-file_paths_neg = [rbp1+'/test/negatives/data.fa',  rbp1+'/train/negatives/data.fa',
-               rbp2+'/test/negatives/data.fa', rbp2+'/train/negatives/data.fa', 
-               rbp3+'/test/negatives/data.fa',  rbp3+'/train/negatives/data.fa', ]
-file_paths_pos = [rbp1+'/test/positives/data.fa', rbp1+'/train/positives/data.fa',
-               rbp2+'/test/positives/data.fa', rbp2+'/train/positives/data.fa',
-               rbp3+'/test/positives/data.fa', rbp3+'/train/positives/data.fa',]
+file_paths_neg = [rbp1+'/train/negatives/data.fa',
+               rbp2+'/train/negatives/data.fa', 
+               rbp3+'/train/negatives/data.fa', 
+               rbp4+'/train/negatives/data.fa']
+file_paths_pos = [rbp1+'/train/positives/data.fa',
+               rbp2+'/train/positives/data.fa',
+               rbp3+'/train/positives/data.fa',
+               rbp4+'/train/positives/data.fa']
 
 # 定义每个文件要抽取的数据数量
-samples_per_file = 25
+samples_per_file = 1000
 
 # 初始化抽样结果列表
 sampled_data_neg = []
