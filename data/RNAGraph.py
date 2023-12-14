@@ -16,6 +16,7 @@ import time
 
 import csv
 from sklearn.model_selection import StratifiedShuffleSplit
+from dgl.data.utils import save_graphs, load_graphs, load_labels
 
 class DGLFormDataset(torch.utils.data.Dataset):
     """
@@ -253,7 +254,7 @@ class RNAGraphDGL(torch.utils.data.Dataset):
         #             continue
         #         grh.add_edges(i, i + j)
         #         grh.edges[i, i + j].data['feat'] = torch.tensor([[1/j]], dtype=torch.float64)
-
+        save_graphs()
         return grh
 
     def __len__(self):

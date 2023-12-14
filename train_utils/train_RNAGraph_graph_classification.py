@@ -12,6 +12,7 @@ import dgl
 import torch.nn.functional as F
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 from train_utils.metrics import accuracy_MNIST_CIFAR as accuracy
+import pandas as pd
 
 """
     For GCNs
@@ -56,6 +57,7 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
     nb_data = 0
     gpu_mem = 0
     parts = 1
+    epoch_results = []
     for iter, (graphs, labels) in enumerate(data_loader):
         batch_size = labels.shape[0]
         #print(iter)
@@ -74,11 +76,20 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
 
             model_loss = model.loss(batch_scores, batch_labels)
 
-            protein_loss = model.RBP_loss(batch_graphs, batch_labels)
+            protein_loss, cosine_similarity = model.RBP_loss(batch_graphs, batch_labels)
             # protein_loss = 0
             
             loss = model_loss + protein_loss
             print("iter: ", iter, "model loss: ", model_loss, "protein_loss: ", protein_loss)
+            
+            data = {
+                'Iteration': iter,
+                'Cosine_Similarity': cosine_similarity.tolist(),
+                'Label': batch_labels.cpu().tolist(),  # 将标签移到CPU并转换为列表,这里label是01，但是计算相似度时用的正负1
+            }
+            df = pd.DataFrame(data)
+            epoch_results.append(df)
+
             b = 0.05
             loss = torch.abs(loss - b) + b
 
@@ -89,6 +100,11 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
             nb_data += batch_labels.size(0)
     epoch_loss /= (iter + 1)*parts
     epoch_train_acc /= nb_data
+
+    epoch_df = pd.concat(epoch_results)
+    file_dir = '/home/gaoyifei/RNARepresentation/data/'
+    epoch_file_name = file_dir + f'epoch_{epoch}_cosine_similarity_and_labels_0.1.csv'
+    epoch_df.to_csv(epoch_file_name, index=False)
 
     return epoch_loss, epoch_train_acc, optimizer
 

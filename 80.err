@@ -1,19 +1,0 @@
-  0%|          | 0/266 [00:00<?, ?it/s]/amax/data/anaconda3/envs/RNASSR/lib/python3.7/site-packages/dgl/heterograph.py:93: DGLWarning: Recommend creating graphs by `dgl.graph(data)` instead of `dgl.DGLGraph(data)`.
-  "Recommend creating graphs by `dgl.graph(data)`"
-  0%|          | 0/266 [00:00<?, ?it/s]
-Traceback (most recent call last):
-  File "preprocess.py", line 46, in <module>
-    dataset = RNAGraphDatasetDGL(DATASET_NAME, fold_algo, probabilistic, debias=debias)
-  File "/home/gaoyifei/RNARepresentation/data/RNAGraph.py", line 496, in __init__
-    fold_algo=fold_algo, probabilistic=probablistic, debias=debias)
-  File "/home/gaoyifei/RNARepresentation/data/RNAGraph.py", line 93, in __init__
-    self.graph_lists = self._convert2dglgraph(self.seq_list, adjacency_matrix, tensor_list, self.all_id)
-  File "/home/gaoyifei/RNARepresentation/data/RNAGraph.py", line 195, in _convert2dglgraph
-    dgl_graph_list.append(self._constructGraph(seq_list[i], csr_matrixs[i], tensor_list[i], id_list[i]))
-  File "/home/gaoyifei/RNARepresentation/data/RNAGraph.py", line 238, in _constructGraph
-    grh.ndata['id'][i] = id
-  File "/amax/data/anaconda3/envs/RNASSR/lib/python3.7/site-packages/dgl/view.py", line 80, in __getitem__
-    return self._graph._get_n_repr(self._ntid, self._nodes)[key]
-  File "/amax/data/anaconda3/envs/RNASSR/lib/python3.7/site-packages/dgl/frame.py", line 688, in __getitem__
-    return self._columns[name].data
-KeyError: 'id'

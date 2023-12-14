@@ -3,6 +3,7 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 import dgl
+import numpy as np
 
 """
     GCN: Graph Convolutional Networks
@@ -203,6 +204,11 @@ class GCNNet(nn.Module):
         # output = output.unsqueeze(1)
         return output
     
+    def cosine_similarity(self, x, y):
+        num = x.dot(y.T)
+        denom = np.linalg.norm(x) * np.linalg.norm(y)
+        return num / denom
+    
     def RBP_loss(self, g, label):
         result=["ALKBH5_Baltz2012",
             "C17ORF85_Baltz2012",
@@ -252,13 +258,15 @@ class GCNNet(nn.Module):
                 protein_features = torch.cat([protein_features,mean_protein_linear], dim=0)
             start += batch_num
             
-        criterion = nn.CosineEmbeddingLoss(margin = 0.2)
+        criterion = nn.CosineEmbeddingLoss(margin = 0.1)
 
         graph_feature = self._graph2feature(g).to(self.device)
-        
-        rbp_loss = criterion(graph_feature, protein_features.to(self.device), label.to(self.device))
 
-        return rbp_loss
+        cos_sim = self.cosine_similarity(graph_feature.cpu().detach().numpy(), protein_features.cpu().detach().numpy())
+        label2 = torch.where(label == 0, -1, label) #原来标签为0和1，转为-1和1
+        rbp_loss = criterion(graph_feature, protein_features.to(self.device), label2.to(self.device))
+
+        return rbp_loss,cos_sim
 
 # self.similar_loss = torch.norm(
 #     torch.mean(torch.mean(h2, dim=1).squeeze(-1), dim=0) -

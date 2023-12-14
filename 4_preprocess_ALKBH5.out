@@ -1,0 +1,27 @@
+/home/gaoyifei/RNARepresentation
+processing test data
+read data
+convert seq to graph
+convert graph to dglgraph
+processing train data
+read data
+convert seq to graph
+convert graph to dglgraph
+train data shuffle
+length of train dataset:  7200
+first element in train dataset:  (Graph(num_nodes=355, num_edges=14226,
+      ndata_schemes={'feat': Scheme(shape=(768,), dtype=torch.float32), 'id': Scheme(shape=(24,), dtype=torch.float32)}
+      edata_schemes={}), tensor(1))
+val data shuffle
+length of val dataset:  800
+first element in val dataset:  (Graph(num_nodes=339, num_edges=11210,
+      ndata_schemes={'feat': Scheme(shape=(768,), dtype=torch.float32), 'id': Scheme(shape=(24,), dtype=torch.float32)}
+      edata_schemes={}), tensor(0))
+test data shuffle
+length of test dataset:  266
+first element in test dataset:  (Graph(num_nodes=336, num_edges=11604,
+      ndata_schemes={'feat': Scheme(shape=(768,), dtype=torch.float32), 'id': Scheme(shape=(24,), dtype=torch.float32)}
+      edata_schemes={}), tensor(0))
+[I] Data load time: 116.5445s
+Time (sec): 116.55337595939636
+Time (sec): 9.5367431640625e-07

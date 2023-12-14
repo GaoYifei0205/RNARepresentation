@@ -4,19 +4,40 @@ import random
 
 base_dir = '/amax/data/gaoyifei/GraphProt/GraphProt_CLIP_sequences/'
 
-rbp1 = base_dir+'C17ORF85_Baltz2012'
-rbp2 = base_dir+'ICLIP_TDP43'
-rbp3 = base_dir+'ICLIP_TIAL1'
-rbp4 = base_dir+'PARCLIP_MOV10_Sievers'
+trains = ["ALKBH5_Baltz2012",
+# "C17ORF85_Baltz2012",
+"C22ORF28_Baltz2012",
+"CAPRIN1_Baltz2012",
+"CLIPSEQ_AGO2",
+"CLIPSEQ_ELAVL1",
+"CLIPSEQ_SFRS1",
+"ICLIP_HNRNPC",
+# "ICLIP_TDP43",
+"ICLIP_TIA1",
+"ICLIP_TIAL1",
+"PARCLIP_AGO1234",
+"PARCLIP_ELAVL1",
+"PARCLIP_ELAVL1A",
+# "PARCLIP_EWSR1",
+"PARCLIP_FUS",
+"PARCLIP_HUR",
+"PARCLIP_IGF2BP123",
+# "PARCLIP_MOV10_Sievers",
+"PARCLIP_PUM2",
+"PARCLIP_QKI",
+"PARCLIP_TAF15",
+"PTBv1",
+"ZC3H7B_Baltz2012"]
+
+
+
+# rbp1 = base_dir+'C17ORF85_Baltz2012'
+# rbp2 = base_dir+'ICLIP_TDP43'
+# rbp3 = base_dir+'ICLIP_TIAL1'
+# rbp4 = base_dir+'PARCLIP_MOV10_Sievers'
 # 定义文件路径
-file_paths_neg = [rbp1+'/train/negatives/data.fa',
-               rbp2+'/train/negatives/data.fa', 
-               rbp3+'/train/negatives/data.fa', 
-               rbp4+'/train/negatives/data.fa']
-file_paths_pos = [rbp1+'/train/positives/data.fa',
-               rbp2+'/train/positives/data.fa',
-               rbp3+'/train/positives/data.fa',
-               rbp4+'/train/positives/data.fa']
+file_paths_neg = [base_dir+trains[i]+'/train/negatives/data.fa' for i in range(len(trains))]
+file_paths_pos = [base_dir+trains[i]+'/train/positives/data.fa' for i in range(len(trains))]
 
 # 定义每个文件要抽取的数据数量
 samples_per_file = 1000
